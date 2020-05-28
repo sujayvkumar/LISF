@@ -100,6 +100,9 @@ subroutine updateLSestimate()
      if(ls_ctl%LSobjfunc_mode.eq.1) then 
         do t=1,LIS_rc%ntiles(n)
            index1 = LIS_domain(n)%tile(t)%index
+!           if(LIS_rc%mo.eq.12.or.LIS_rc%mo.eq.1.or.LIS_rc%mo.eq.2) then 
+!              ls_ctl%w = 10.0 
+!           endif
            if(peobs(index1).ne.LIS_rc%udef) then               
               sqerr(t) = sqerr(t) + ls_ctl%w(k)*(peobs(index1) - obspred(t))**2
               numobs(t) = numobs(t) + 1

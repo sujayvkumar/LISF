@@ -588,4 +588,7 @@ SUBROUTINE TRANSFER_MP_PARAMETERS(VEGTYPE,SOILTYPE,SLOPETYPE,SOILCOLOR,CROPTYPE,
     parameters%mnsnalb = 0.55
     parameters%sndecayexp = 0.01
 
+    parameters%t_ulimit = 2.5
+    parameters%t_mlimit = 2.0
+    parameters%t_llimit = 0.5
  END SUBROUTINE TRANSFER_MP_PARAMETERS

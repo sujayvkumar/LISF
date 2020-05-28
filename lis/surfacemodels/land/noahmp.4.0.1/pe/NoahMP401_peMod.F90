@@ -103,7 +103,7 @@ contains
 
     allocate(NoahMP401_pe_struc(LIS_rc%nnest))
     n = 1
-    NoahMP401_pe_struc(n)%nparams = 76
+    NoahMP401_pe_struc(n)%nparams = 79
 
     allocate(NoahMP401_pe_struc(n)%param_name(NoahMP401_pe_struc(n)%nparams))
     allocate(NoahMP401_pe_struc(n)%param_select(NoahMP401_pe_struc(n)%nparams))
@@ -385,9 +385,27 @@ contains
                 vardata(t) = NoahMP401_struc(n)%noahmp401(t)%param%mxsnalb
              enddo
           endif
-          if(vname.eq."SNDECAYEXP")      then 
+          if(vname.eq."SNDECAYEXP") then 
              do t=1,NT 
                 vardata(t) = NoahMP401_struc(n)%noahmp401(t)%param%sndecayexp
+             enddo
+          endif
+
+          if(vname.eq."T_ULIMIT") then 
+             do t=1,NT 
+                vardata(t) = NoahMP401_struc(n)%noahmp401(t)%param%t_ulimit
+             enddo
+          endif
+
+          if(vname.eq."T_LLIMIT") then 
+             do t=1,NT 
+                vardata(t) = NoahMP401_struc(n)%noahmp401(t)%param%t_llimit
+             enddo
+          endif
+
+          if(vname.eq."T_MLIMIT") then 
+             do t=1,NT 
+                vardata(t) = NoahMP401_struc(n)%noahmp401(t)%param%t_mlimit
              enddo
           endif
 
