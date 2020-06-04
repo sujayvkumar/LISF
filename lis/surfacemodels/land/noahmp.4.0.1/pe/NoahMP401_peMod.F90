@@ -408,6 +408,12 @@ contains
                 vardata(t) = NoahMP401_struc(n)%noahmp401(t)%param%t_mlimit
              enddo
           endif
+          
+          if(vname.eq."PRCP_SCALEF") then 
+             do t=1,NT 
+                vardata(t) = NoahMP401_struc(n)%noahmp401(t)%prcp_scalef
+             enddo
+          endif
 
           if(vname.eq."RHOL1")  then 
              do t=1,NT 
