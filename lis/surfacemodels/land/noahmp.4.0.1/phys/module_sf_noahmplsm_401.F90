@@ -2978,7 +2978,9 @@ ENDIF   ! CROPTYPE == 0
 ! here assume 1cm snow depth will fully cover the old snow
 
          IF (QSNOW > 0.) then
-           ALB = ALB + MIN(QSNOW,parameters%SWEMX/DT) * (0.84-ALB)/(parameters%SWEMX/DT)
+            ALB = ALB + MIN(QSNOW,parameters%SWEMX/DT) * &
+                 (parameters%mxsnalb-ALB)/(parameters%SWEMX/DT)
+            
          ENDIF
 
          ALBSNI(1)= ALB         ! vis diffuse
