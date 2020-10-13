@@ -2455,7 +2455,6 @@ contains
             ntiles,(/"kg/m2s","kg/m2 "/),2,(/"UP","DN"/),2,1,1,&
             model_patch=.true.)
     endif
-
     
     call ESMF_ConfigFindLabel(modelSpecConfig,"LSSnowf_f:",rc=rc)
     call get_moc_attributes(modelSpecConfig, LIS_histData(n)%head_lsm_list, &
