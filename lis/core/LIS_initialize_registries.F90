@@ -25,8 +25,8 @@ subroutine LIS_initialize_registries()
   use LIS_dataassim_pluginMod,       only : LIS_dataassim_plugin
   use LIS_biasEstimation_pluginMod,  only : LIS_biasEstimation_plugin
   use LIS_optUEAlgorithm_pluginMod,  only : LIS_optUEAlgorithm_plugin
-!  use LIS_optUEType_pluginMod,      only : LIS_optUEType_plugin
   use LIS_lsmoptue_pluginMod,        only : LIS_lsmoptue_plugin
+  use LIS_routingoptue_pluginMod,    only : LIS_routingoptue_plugin
   use LIS_PEobs_pluginMod,           only : LIS_PEobs_plugin
   use LIS_ObjFunc_pluginMod,         only : LIS_ObjFunc_plugin
   use LIS_RTM_pluginMod,             only : LIS_RTM_plugin
@@ -120,8 +120,8 @@ subroutine LIS_initialize_registries()
   call LIS_biasestimation_plugin  
 
   call LIS_optUEAlgorithm_plugin
-!  call LIS_optUEType_plugin
   call LIS_lsmoptue_plugin
+  call LIS_routingoptue_plugin
   call LIS_rtmoptue_plugin
   call LIS_PEobs_plugin
   call LIS_ObjFunc_plugin

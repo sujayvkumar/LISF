@@ -93,15 +93,7 @@ subroutine noahmp36_getrunoffs_hymap2(n)
   deallocate(runoff2)
   deallocate(runoff1_t)
   deallocate(runoff2_t)
-  
-  !if 2-way coupling, convert units of surface runoff and baseflow from mm/s to mm
-  call ESMF_AttributeGet(LIS_runoff_state(n),"2 way coupling",enable2waycpl, rc=status)
-  call LIS_verify(status)
-  if(enable2waycpl==1) then 
-    where(sfrunoff/=LIS_rc%udef)sfrunoff=sfrunoff*NOAHMP36_struc(n)%dt
-    where(baseflow/=LIS_rc%udef)baseflow=baseflow*NOAHMP36_struc(n)%dt
-  endif
-   
+     
   !ag (05Jun2017)
   !Including meteorological forcings + evapotranspiration for computing evaporation from open waters in HyMAP2)
   if(evapflag.ne.0)then

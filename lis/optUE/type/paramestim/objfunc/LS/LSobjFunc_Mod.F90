@@ -53,11 +53,10 @@ contains
 ! !INTERFACE: 
   subroutine initializeLSObjFunc()
 ! !USES: 
-    use LIS_coreMod,         only : LIS_vecTile, LIS_config
-    use LIS_optUEMod,        only : LIS_ObjectiveFunc
-    use LIS_logMod,          only : LIS_logunit, LIS_getNextUnitNumber, &
-         LIS_releaseUnitNumber, LIS_endrun, LIS_verify
-    use LIS_PE_HandlerMod,   only : LIS_PEOBS_State
+    use LIS_coreMod
+    use LIS_optUEMod
+    use LIS_logMod
+    use LIS_PE_HandlerMod
 ! 
 ! !DESCRIPTION:
 !  This method initializes the objects to be used in the least square 
@@ -142,66 +141,131 @@ contains
          rc=status)
     call LIS_verify(status)
     
-    objfuncField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
-         name="Objective Function Value",rc=status)
-    call LIS_verify(status)
-    
-    minField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
-         name="Min Criteria Value",rc=status)
-    call LIS_verify(status)
-    
-    maxField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
-         name="Max Criteria Value",rc=status)
-    call LIS_verify(status)
-    
-    call ESMF_FieldGet(objfuncField, localDE=0, farrayPtr=objfunc, rc=status)
-    call LIS_verify(status)
-    objfunc = 0
-    
-    numobsField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
-         name="Number of observations",rc=status)
-    call LIS_verify(status)
-    
-    call ESMF_FieldGet(numobsField, localDE=0, farrayPtr=numobs, rc=status)
-    call LIS_verify(status)
-    numobs = 0
-    
-    if(ls_ctl%LSobjfunc_mode.eq.3) then
-       modelvField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
-            name="Model obspred",rc=status)
+    if(LIS_lsm_opt_enabled) then 
+       objfuncField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
+            name="Objective Function Value",rc=status)
        call LIS_verify(status)
        
-       call ESMF_FieldGet(modelvField, localDE=0, farrayPtr=modelv, rc=status)
-       call LIS_verify(status)
-       modelv = 0
-       
-       nummodelvField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
-            name="Count Model obspred",rc=status)
+       minField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
+            name="Min Criteria Value",rc=status)
        call LIS_verify(status)
        
-       call ESMF_FieldGet(nummodelvField, localDE=0, farrayPtr=nummodelv, rc=status)
+       maxField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
+            name="Max Criteria Value",rc=status)
        call LIS_verify(status)
-       nummodelv = 0 
+    
 
-       call ESMF_StateAdd(LIS_ObjectiveFunc, (/modelvField/), rc=status)
+       call ESMF_FieldGet(objfuncField, localDE=0, farrayPtr=objfunc, rc=status)
+       call LIS_verify(status)
+       objfunc = 0
+       
+       numobsField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
+            name="Number of observations",rc=status)
+       call LIS_verify(status)
+       
+       call ESMF_FieldGet(numobsField, localDE=0, farrayPtr=numobs, rc=status)
+       call LIS_verify(status)
+       numobs = 0
+    
+       if(ls_ctl%LSobjfunc_mode.eq.3) then
+          modelvField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
+               name="Model obspred",rc=status)
+          call LIS_verify(status)
+          
+          call ESMF_FieldGet(modelvField, localDE=0, farrayPtr=modelv, rc=status)
+          call LIS_verify(status)
+          modelv = 0
+          
+          nummodelvField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecTile(n),&
+               name="Count Model obspred",rc=status)
+          call LIS_verify(status)
+          
+          call ESMF_FieldGet(nummodelvField, localDE=0, farrayPtr=nummodelv, rc=status)
+          call LIS_verify(status)
+          nummodelv = 0 
+          
+          call ESMF_StateAdd(LIS_ObjectiveFunc, (/modelvField/), rc=status)
+          call LIS_verify(status)  
+          
+          call ESMF_StateAdd(LIS_ObjectiveFunc, (/nummodelvField/), rc=status)
+          call LIS_verify(status)  
+       endif
+    
+
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/objfuncField/), rc=status)
        call LIS_verify(status)  
+       
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/minField/), rc=status)
+       call LIS_verify(status)  
+       
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/maxField/), rc=status)
+       call LIS_verify(status)  
+       
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/numobsField/), rc=status)
+       call LIS_verify(status)  
+    elseif(LIS_routing_opt_enabled) then 
+       objfuncField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecRoutingTile(n),&
+            name="Objective Function Value",rc=status)
+       call LIS_verify(status)
+       
+       minField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecRoutingTile(n),&
+            name="Min Criteria Value",rc=status)
+       call LIS_verify(status)
+       
+       maxField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecRoutingTile(n),&
+            name="Max Criteria Value",rc=status)
+       call LIS_verify(status)
+    
 
-       call ESMF_StateAdd(LIS_ObjectiveFunc, (/nummodelvField/), rc=status)
+       call ESMF_FieldGet(objfuncField, localDE=0, farrayPtr=objfunc, rc=status)
+       call LIS_verify(status)
+       objfunc = 0
+       
+       numobsField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecRoutingTile(n),&
+            name="Number of observations",rc=status)
+       call LIS_verify(status)
+       
+       call ESMF_FieldGet(numobsField, localDE=0, farrayPtr=numobs, rc=status)
+       call LIS_verify(status)
+       numobs = 0
+    
+       if(ls_ctl%LSobjfunc_mode.eq.3) then
+          modelvField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecRoutingTile(n),&
+               name="Model obspred",rc=status)
+          call LIS_verify(status)
+          
+          call ESMF_FieldGet(modelvField, localDE=0, farrayPtr=modelv, rc=status)
+          call LIS_verify(status)
+          modelv = 0
+          
+          nummodelvField = ESMF_FieldCreate(arrayspec=arrspec1,grid=LIS_vecRoutingTile(n),&
+               name="Count Model obspred",rc=status)
+          call LIS_verify(status)
+          
+          call ESMF_FieldGet(nummodelvField, localDE=0, farrayPtr=nummodelv, rc=status)
+          call LIS_verify(status)
+          nummodelv = 0 
+          
+          call ESMF_StateAdd(LIS_ObjectiveFunc, (/modelvField/), rc=status)
+          call LIS_verify(status)  
+          
+          call ESMF_StateAdd(LIS_ObjectiveFunc, (/nummodelvField/), rc=status)
+          call LIS_verify(status)  
+       endif
+    
+
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/objfuncField/), rc=status)
+       call LIS_verify(status)  
+       
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/minField/), rc=status)
+       call LIS_verify(status)  
+       
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/maxField/), rc=status)
+       call LIS_verify(status)  
+       
+       call ESMF_StateAdd(LIS_ObjectiveFunc, (/numobsField/), rc=status)
        call LIS_verify(status)  
     endif
-
-    call ESMF_StateAdd(LIS_ObjectiveFunc, (/objfuncField/), rc=status)
-    call LIS_verify(status)  
-    
-    call ESMF_StateAdd(LIS_ObjectiveFunc, (/minField/), rc=status)
-    call LIS_verify(status)  
-    
-    call ESMF_StateAdd(LIS_ObjectiveFunc, (/maxField/), rc=status)
-    call LIS_verify(status)  
-    
-    call ESMF_StateAdd(LIS_ObjectiveFunc, (/numobsField/), rc=status)
-    call LIS_verify(status)  
-    
   end subroutine initializeLSObjFunc
   
 

@@ -83,9 +83,7 @@ contains
 ! 
 !EOP
     integer :: status
-    type(ESMF_Field)            :: varField
-    type(ESMF_ArraySpec)        :: arrspec1
-    integer, pointer            :: mod_flag(:)
+
     integer                     :: n 
 
     call ESMF_ConfigGetAttribute(LIS_config,LIS_rc%optUEAlg,&
@@ -111,25 +109,6 @@ contains
     LIS_decisionSpace = ESMF_StateCreate(name="Decision Space",rc=status)
     call LIS_verify(status)
 
-
-    LIS_FeasibleSpace = ESMF_StateCreate(name="Feasible Space",rc=status)
-    call LIS_verify(status)
-
-    call ESMF_ArraySpecSet(arrspec1, rank=1,typekind = ESMF_TYPEKIND_I4,&
-         rc=status)
-    call LIS_verify(status)
-    n = 1
-
-    varField = ESMF_FieldCreate(arrayspec=arrspec1, grid=LIS_vecTile(n),&
-         name = "Feasibility Flag",rc=status)
-    call LIS_verify(status)
-    call ESMF_StateAdd(LIS_feasibleSpace, (/varField/),rc=status)
-    call LIS_verify(status)
-
-!initialize the feasibility flag
-    call ESMF_FieldGet(varField,localDE=0,farrayPtr=mod_flag,rc=status)
-    call LIS_verify(status)
-    mod_flag = 0
 !    write(LIS_logunit,*) 'LIS_optUE_init mod_flag:', mod_flag
 
     LIS_objectiveFunc = ESMF_StateCreate(name="Objective Function",rc=status)

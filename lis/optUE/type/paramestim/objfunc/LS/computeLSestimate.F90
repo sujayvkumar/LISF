@@ -1,4 +1,3 @@
-
 !-----------------------BEGIN NOTICE -- DO NOT EDIT-----------------------
 ! NASA Goddard Space Flight Center Land Information System (LIS) v7.2
 !
@@ -21,8 +20,9 @@
    use ESMF
    use LIS_mpiMod
    use LIS_coreMod
-   use LIS_optUEMod,        only : LIS_ObjectiveFunc,LIS_feasibleSpace
-   use LIS_logMod,          only : LIS_logUnit, LIS_verify
+   use LIS_optUEMod
+   use LIS_logMod
+   use LIS_PE_HandlerMod
    use LSObjFunc_Mod,       only : ls_ctl
 ! 
 ! !DESCRIPTION: 
@@ -46,7 +46,7 @@
    real, allocatable         :: sqerr_t1(:), numobs_t1(:)
    real, allocatable         :: sqerr_t1_sum(:), numobs_t1_sum(:)
    integer               :: deltas(LIS_npes), offsets(LIS_npes)
-   integer               :: t,m,l,tindex
+   integer               :: t,m,l,kk,tindex
    integer               :: n,col,row
    integer               :: ierr,status
    
@@ -92,61 +92,267 @@
   minvalue=1e+20
   maxvalue=-1e+20
   
-  if(ls_ctl%LSobjfunc_mode.eq.1) then 
-     do t=1,LIS_rc%ntiles(n)
-        if (numobs(t).ge.ls_ctl%LSobjfunc_minobs) then
-           minvalue(t) = sqrt(sqerr(t)/numobs(t)) !sqerr(t)
-           if(sqerr(t).ne.0.0) then
-              maxvalue(t) = 1/minvalue(t)
-              !maxvalue(t) = -sqerr(t)
+  if(LIS_lsm_opt_enabled) then 
+     if(ls_ctl%LSobjfunc_mode.eq.1) then 
+        do t=1,LIS_rc%ntiles(n)
+           if (numobs(t).ge.ls_ctl%LSobjfunc_minobs) then
+              minvalue(t) = sqrt(sqerr(t)/numobs(t)) !sqerr(t)
+              if(sqerr(t).ne.0.0) then
+                 maxvalue(t) = 1/minvalue(t)
+              endif
+           else !numobs(t)=0
+              mod_flag(t)=1
+           end if
+        enddo
+     elseif(ls_ctl%LSobjfunc_mode.eq.3) then 
+        call ESMF_StateGet(LIS_ObjectiveFunc,"Model obspred",modelvField,rc=status)
+        call LIS_verify(status)
+        call ESMF_FieldGet(modelvField, localDE=0, farrayPtr=modelv, rc=status)
+        call LIS_verify(status)
+        
+        call ESMF_StateGet(LIS_ObjectiveFunc,"Count Model obspred",nummodelvField,rc=status)
+        call LIS_verify(status)
+        call ESMF_FieldGet(nummodelvField, localDE=0, farrayPtr=nummodelv, rc=status)
+        call LIS_verify(status)     
+        
+        do t=1, LIS_rc%ntiles(n)
+           if(numobs(t).ge.ls_ctl%LSobjfunc_minobs) then 
+              sqerr(t) = sqerr(t)/numobs(t)  !obs climo           
            endif
-        else !numobs(t)=0
-!           minvalue(t)=LIS_rc%udef  !need to check if algs expect this
-!           minvalue(t)=LIS_rc%udef  !need to check if algs expect this
-           mod_flag(t)=1
-        end if
-     enddo
-!     print*, maxvalue(197905)
-  elseif(ls_ctl%LSobjfunc_mode.eq.3) then 
-     call ESMF_StateGet(LIS_ObjectiveFunc,"Model obspred",modelvField,rc=status)
-     call LIS_verify(status)
-     call ESMF_FieldGet(modelvField, localDE=0, farrayPtr=modelv, rc=status)
-     call LIS_verify(status)
-
-     call ESMF_StateGet(LIS_ObjectiveFunc,"Count Model obspred",nummodelvField,rc=status)
-     call LIS_verify(status)
-     call ESMF_FieldGet(nummodelvField, localDE=0, farrayPtr=nummodelv, rc=status)
-     call LIS_verify(status)     
-
-     do t=1, LIS_rc%ntiles(n)
-        if(numobs(t).ge.ls_ctl%LSobjfunc_minobs) then 
-           sqerr(t) = sqerr(t)/numobs(t)  !obs climo           
-        endif
-        if(nummodelv(t).ge.ls_ctl%LSobjfunc_minobs) then 
-           modelv(t) = modelv(t)/nummodelv(t) !model climo
-        endif
-        if(numobs(t).ge.ls_ctl%LSobjfunc_minobs.and.&
-             nummodelv(t).ge.ls_ctl%LSobjfunc_minobs) then
-           if((sqerr(t)-modelv(t)).ne.0) then 
-              maxvalue(t) = 1/abs(sqerr(t)-modelv(t))
-              minvalue(t) = abs(sqerr(t)-modelv(t))
+           if(nummodelv(t).ge.ls_ctl%LSobjfunc_minobs) then 
+              modelv(t) = modelv(t)/nummodelv(t) !model climo
+           endif
+           if(numobs(t).ge.ls_ctl%LSobjfunc_minobs.and.&
+                nummodelv(t).ge.ls_ctl%LSobjfunc_minobs) then
+              if((sqerr(t)-modelv(t)).ne.0) then 
+                 maxvalue(t) = 1/abs(sqerr(t)-modelv(t))
+                 minvalue(t) = abs(sqerr(t)-modelv(t))
+              else
+                 maxvalue(t) = 0.0
+                 minvalue(t) = 0.0
+              endif
            else
               maxvalue(t) = 0.0
               minvalue(t) = 0.0
            endif
-        else
-           maxvalue(t) = 0.0
-           minvalue(t) = 0.0
-        endif
-     enddo
+        enddo
+        
+     elseif(ls_ctl%LSObjfunc_mode.eq.2) then 
+        sqerr_t  = 0 
+        numobs_t = 0 
+        do t=1,LIS_rc%ntiles(n)/LIS_rc%nensem(n)
+           do m=1,LIS_rc%nensem(n)
+              tindex = m + (t-1)*LIS_rc%nensem(n)
+              
+              sqerr_t(m) = sqerr_t(m)+sqerr(tindex)
+              numobs_t(m) = numobs_t(m) + numobs(tindex)           
+              
+           enddo
+        enddo
+        
+#if (defined SPMD) 
+        !aggregate the sum values from all processors
+        sqerr_t1_sum = 0 
+        numobs_t1_sum = 0 
+        deltas = 1
+        
+        do l=1,LIS_npes
+           offsets(l) = l-1
+        enddo
+        
+        do m=1,LIS_rc%nensem(n)
+           
+           call MPI_GATHERV(sqerr_t(m),1,MPI_REAL,sqerr_t1,&
+                deltas,offsets,MPI_REAL,0,LIS_mpi_comm,ierr)
+           
+           if(LIS_masterproc) then 
+              do l=1,LIS_npes
+                 sqerr_t1_sum(m) = sqerr_t1_sum(m) + sqerr_t1(l)           
+              enddo
+           endif
+           
+           call MPI_BCAST(sqerr_t1_sum(m),1, MPI_REAL,0, &
+                LIS_mpi_comm,ierr)
+        enddo
+        
+        do m=1,LIS_rc%nensem(n)
+           
+           call MPI_GATHERV(numobs_t(m),1,MPI_REAL,numobs_t1,&
+                deltas,offsets,MPI_REAL,0,LIS_mpi_comm,ierr)
+           
+           if(LIS_masterproc) then 
+              do l=1,LIS_npes
+                 numobs_t1_sum(m) = numobs_t1_sum(m) + numobs_t1(l)           
+              enddo
+           endif
+           
+           call MPI_BCAST(numobs_t1_sum(m),1, MPI_REAL,0, &
+                LIS_mpi_comm,ierr)
+        enddo
+#else 
+        sqerr_t1_sum = sqerr_t
+        numobs_t1_sum = numobs_t
+#endif
+        
+        do t=1,LIS_rc%ntiles(n)/LIS_rc%nensem(n)
+           do m=1,LIS_rc%nensem(n)
+              
+              tindex = m + (t-1)*LIS_rc%nensem(n)
+              
+              minvalue(tindex) = sqerr_t1_sum(m)
+              
+              if(sqerr_t1_sum(m).ne.0.0) then
+                 maxvalue(tindex) = 1/(sqrt(sqerr_t1_sum(m)/numobs_t1_sum(m)))
+                 if(t.eq.1) print*, 'fit ',tindex,maxvalue(tindex),sqerr_t1_sum(m), numobs_t1_sum(m)
+              else
+                 maxvalue(tindex) = 0.0
+              endif
+           enddo
+        enddo
+     endif
+  elseif(LIS_routing_opt_enabled) then 
+     if(ls_ctl%LSobjfunc_mode.eq.1) then 
+        do t=1,LIS_rc%nroutinggrid(n)
+           do m=1,LIS_rc%nensem(n)
+              kk = (t-1)*LIS_rc%nensem(n)+m
+
+              if (numobs(kk).ge.ls_ctl%LSobjfunc_minobs) then
+                 minvalue(kk) = sqrt(sqerr(kk)/numobs(kk)) !sqerr(t)
+                 if(sqerr(kk).ne.0.0) then
+                    maxvalue(kk) = 1/minvalue(kk)
+                 endif
+              else !numobs(t)=0
+                 mod_flag(kk)=1
+              end if
+           enddo
+        enddo
+     elseif(ls_ctl%LSobjfunc_mode.eq.3) then 
+        call ESMF_StateGet(LIS_ObjectiveFunc,"Model obspred",modelvField,rc=status)
+        call LIS_verify(status)
+        call ESMF_FieldGet(modelvField, localDE=0, farrayPtr=modelv, rc=status)
+        call LIS_verify(status)
+        
+        call ESMF_StateGet(LIS_ObjectiveFunc,"Count Model obspred",nummodelvField,rc=status)
+        call LIS_verify(status)
+        call ESMF_FieldGet(nummodelvField, localDE=0, farrayPtr=nummodelv, rc=status)
+        call LIS_verify(status)     
+        
+        do t=1,LIS_rc%nroutinggrid(n)
+           do m=1,LIS_rc%nensem(n)
+              kk=(t-1)*LIS_rc%nensem(n)+m
+
+              if(numobs(kk).ge.ls_ctl%LSobjfunc_minobs) then 
+                 sqerr(kk) = sqerr(kk)/numobs(kk)  !obs climo           
+              endif
+              if(nummodelv(kk).ge.ls_ctl%LSobjfunc_minobs) then 
+                 modelv(kk) = modelv(kk)/nummodelv(kk) !model climo
+              endif
+              if(numobs(kk).ge.ls_ctl%LSobjfunc_minobs.and.&
+                   nummodelv(kk).ge.ls_ctl%LSobjfunc_minobs) then
+                 if((sqerr(kk)-modelv(kk)).ne.0) then 
+                    maxvalue(kk) = 1/abs(sqerr(kk)-modelv(kk))
+                    minvalue(kk) = abs(sqerr(kk)-modelv(kk))
+                 else
+                    maxvalue(kk) = 0.0
+                    minvalue(kk) = 0.0
+                 endif
+              else
+                 maxvalue(kk) = 0.0
+                 minvalue(kk) = 0.0
+              endif
+           enddo
+        enddo
+     elseif(ls_ctl%LSObjfunc_mode.eq.2) then 
+        sqerr_t  = 0 
+        numobs_t = 0 
+        do t=1,LIS_rc%nroutinggrid(n)/LIS_rc%nensem(n)
+           do m=1,LIS_rc%nensem(n)
+              tindex = m + (t-1)*LIS_rc%nensem(n)
+              
+              sqerr_t(m) = sqerr_t(m)+sqerr(tindex)
+              numobs_t(m) = numobs_t(m) + numobs(tindex)           
+              
+           enddo
+        enddo
+        
+#if (defined SPMD) 
+        !aggregate the sum values from all processors
+        sqerr_t1_sum = 0 
+        numobs_t1_sum = 0 
+        deltas = 1
+        
+        do l=1,LIS_npes
+           offsets(l) = l-1
+        enddo
+        
+        do m=1,LIS_rc%nensem(n)
+           
+           call MPI_GATHERV(sqerr_t(m),1,MPI_REAL,sqerr_t1,&
+                deltas,offsets,MPI_REAL,0,LIS_mpi_comm,ierr)
+           
+           if(LIS_masterproc) then 
+              do l=1,LIS_npes
+                 sqerr_t1_sum(m) = sqerr_t1_sum(m) + sqerr_t1(l)           
+              enddo
+           endif
+           
+           call MPI_BCAST(sqerr_t1_sum(m),1, MPI_REAL,0, &
+                LIS_mpi_comm,ierr)
+        enddo
+        
+        do m=1,LIS_rc%nensem(n)
+           
+           call MPI_GATHERV(numobs_t(m),1,MPI_REAL,numobs_t1,&
+                deltas,offsets,MPI_REAL,0,LIS_mpi_comm,ierr)
+           
+           if(LIS_masterproc) then 
+              do l=1,LIS_npes
+                 numobs_t1_sum(m) = numobs_t1_sum(m) + numobs_t1(l)           
+              enddo
+           endif
+           
+           call MPI_BCAST(numobs_t1_sum(m),1, MPI_REAL,0, &
+                LIS_mpi_comm,ierr)
+        enddo
+#else 
+        sqerr_t1_sum = sqerr_t
+        numobs_t1_sum = numobs_t
+#endif
+        
+        do t=1,LIS_rc%nroutinggrid(n)/LIS_rc%nensem(n)
+           do m=1,LIS_rc%nensem(n)
+              
+              tindex = m + (t-1)*LIS_rc%nensem(n)
+              
+              minvalue(tindex) = sqerr_t1_sum(m)
+              
+              if(sqerr_t1_sum(m).ne.0.0) then
+                 maxvalue(tindex) = 1/(sqrt(sqerr_t1_sum(m)/numobs_t1_sum(m)))
+                 if(t.eq.1) print*, 'fit ',tindex,maxvalue(tindex),sqerr_t1_sum(m), numobs_t1_sum(m)
+              else
+                 maxvalue(tindex) = 0.0
+              endif
+           enddo
+        enddo
+     endif
+  endif
+  
+     
+  deallocate(sqerr_t1)
+  deallocate(numobs_t1)
+  deallocate(sqerr_t)
+  deallocate(numobs_t)
+  deallocate(sqerr_t1_sum)
+  deallocate(numobs_t1_sum)
+ end subroutine computeLSestimate
 
 #if 0 
-!computing the "obs mask" 
-     allocate(obs_mask(LIS_rc%lnc(n),LIS_rc%lnr(n)))
-     obs_mask = -9999.0
-     do t=1,LIS_rc%ntiles(n)
-        col = LIS_surface(n, LIS_rc%lsm_index)%tile(t)%col
-        row = LIS_surface(n, LIS_rc%lsm_index)%tile(t)%row
+        !computing the "obs mask" 
+        allocate(obs_mask(LIS_rc%lnc(n),LIS_rc%lnr(n)))
+        obs_mask = -9999.0
+        do t=1,LIS_rc%ntiles(n)
+           col = LIS_surface(n, LIS_rc%lsm_index)%tile(t)%col
+           row = LIS_surface(n, LIS_rc%lsm_index)%tile(t)%row
         if(maxvalue(t).ne.0) then 
            obs_mask(col,row) = 1.0
         endif
@@ -156,85 +362,3 @@
      close(100)
      stop
 #endif
-  elseif(ls_ctl%LSObjfunc_mode.eq.2) then 
-     sqerr_t  = 0 
-     numobs_t = 0 
-     do t=1,LIS_rc%ntiles(n)/LIS_rc%nensem(n)
-        do m=1,LIS_rc%nensem(n)
-           tindex = m + (t-1)*LIS_rc%nensem(n)
-           
-           sqerr_t(m) = sqerr_t(m)+sqerr(tindex)
-           numobs_t(m) = numobs_t(m) + numobs(tindex)           
-
-        enddo
-     enddo
-
-#if (defined SPMD) 
-!aggregate the sum values from all processors
-     sqerr_t1_sum = 0 
-     numobs_t1_sum = 0 
-     deltas = 1
-     
-     do l=1,LIS_npes
-        offsets(l) = l-1
-     enddo
-     
-     do m=1,LIS_rc%nensem(n)
-        
-        call MPI_GATHERV(sqerr_t(m),1,MPI_REAL,sqerr_t1,&
-             deltas,offsets,MPI_REAL,0,LIS_mpi_comm,ierr)
-        
-        if(LIS_masterproc) then 
-           do l=1,LIS_npes
-              sqerr_t1_sum(m) = sqerr_t1_sum(m) + sqerr_t1(l)           
-           enddo
-        endif
-        
-        call MPI_BCAST(sqerr_t1_sum(m),1, MPI_REAL,0, &
-             LIS_mpi_comm,ierr)
-     enddo
-
-     do m=1,LIS_rc%nensem(n)
-        
-        call MPI_GATHERV(numobs_t(m),1,MPI_REAL,numobs_t1,&
-             deltas,offsets,MPI_REAL,0,LIS_mpi_comm,ierr)
-
-        if(LIS_masterproc) then 
-           do l=1,LIS_npes
-              numobs_t1_sum(m) = numobs_t1_sum(m) + numobs_t1(l)           
-           enddo
-        endif
-
-        call MPI_BCAST(numobs_t1_sum(m),1, MPI_REAL,0, &
-             LIS_mpi_comm,ierr)
-     enddo
-#else 
-     sqerr_t1_sum = sqerr_t
-     numobs_t1_sum = numobs_t
-#endif
-     
-     do t=1,LIS_rc%ntiles(n)/LIS_rc%nensem(n)
-        do m=1,LIS_rc%nensem(n)
-           
-           tindex = m + (t-1)*LIS_rc%nensem(n)
-           
-           minvalue(tindex) = sqerr_t1_sum(m)
-
-           if(sqerr_t1_sum(m).ne.0.0) then
-              maxvalue(tindex) = 1/(sqrt(sqerr_t1_sum(m)/numobs_t1_sum(m)))
-              if(t.eq.1) print*, 'fit ',tindex,maxvalue(tindex),sqerr_t1_sum(m), numobs_t1_sum(m)
-           else
-              maxvalue(tindex) = 0.0
-           endif
-        enddo
-     enddo
-  endif
-
-
-  deallocate(sqerr_t1)
-  deallocate(numobs_t1)
-  deallocate(sqerr_t)
-  deallocate(numobs_t)
-  deallocate(sqerr_t1_sum)
-  deallocate(numobs_t1_sum)
- end subroutine computeLSestimate

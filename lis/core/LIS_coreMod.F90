@@ -149,8 +149,10 @@ module LIS_coreMod
 ! Three different types of grid objects are defined because ESMF3.1.0 does
 ! not support defining tiles on a single grid.
   public :: LIS_vecTile
+  public :: LIS_vecRoutingTile
   public :: LIS_vecPatch
   public :: LIS_vecGrid
+  public :: LIS_vecRoutingGrid
   public :: LIS_routing
   public :: LIS_routing_gdeltas, LIS_routing_goffsets
 
@@ -218,8 +220,10 @@ module LIS_coreMod
   integer, allocatable           :: LIS_patch_deltas(:,:,:),LIS_patch_offsets(:,:,:)
 
   type(ESMF_Grid),     allocatable   :: LIS_vecTile(:)
+  type(ESMF_Grid),     allocatable   :: LIS_vecRoutingTile(:)
   type(ESMF_Grid),     allocatable   :: LIS_vecPatch(:,:)
   type(ESMF_Grid),     allocatable   :: LIS_vecGrid(:)
+  type(ESMF_Grid),     allocatable   :: LIS_vecRoutingGrid(:)
 
 !BOPI
 ! !ROUTINE: LIS_config_init
@@ -777,8 +781,10 @@ contains
     allocate(LIS_patch_deltas(nnest,nmodels,0:LIS_npes-1))
 
     allocate(LIS_vecTile(nnest))
+    allocate(LIS_vecRoutingTile(nnest))
     allocate(LIS_vecPatch(nnest,nmodels))
     allocate(LIS_vecGrid(nnest))
+    allocate(LIS_vecRoutingGrid(nnest))
 
     LIS_ews_ind = 0
     LIS_ewe_ind = 0
@@ -855,8 +861,10 @@ contains
     deallocate(LIS_ntiless)
     deallocate(LIS_ngrids)
     deallocate(LIS_vecTile)
+    deallocate(LIS_vecRoutingTile)
     deallocate(LIS_vecPatch)
     deallocate(LIS_vecGrid)
+    deallocate(LIS_vecRoutingGrid)
 
     deallocate(LIS_npatches)
     deallocate(LIS_patch_offsets)

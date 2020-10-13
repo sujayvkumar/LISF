@@ -125,6 +125,7 @@ module LDT_DAmetricsDataMod
 
      type(DAmetricsEntry) :: tws
      type(DAmetricsEntry) :: vod
+     type(DAmetricsEntry) :: wl
 
      type(DAmetricsEntry) ::  windforc
      type(DAmetricsEntry) ::  rainfforc

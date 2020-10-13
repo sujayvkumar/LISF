@@ -209,6 +209,7 @@ contains
                       else
                          metrics%mu(t,j,k) = &                        
                               (metrics%sx_mu(t,j,k)/metrics%count_mu(t,j,k))
+
                       endif
                    enddo
                 enddo

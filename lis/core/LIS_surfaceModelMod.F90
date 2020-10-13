@@ -1149,6 +1149,7 @@ contains
     do m=1,LIS_rc%nsf_model_types
        if(LIS_rc%sf_model_type_select(m).eq.LIS_rc%lsm_index) then 
           call LIS_lsm_reset()
+          call LIS_routing_reset()
        elseif(LIS_rc%sf_model_type_select(m).eq.LIS_rc%lake_index) then 
 
        elseif(LIS_rc%sf_model_type_select(m).eq.LIS_rc%glacier_index) then 

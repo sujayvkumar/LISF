@@ -40,6 +40,7 @@ module LDT_DAobsDataMod
   public :: LDT_DA_MOC_TWS
   public :: LDT_DA_MOC_VOD
   public :: LDT_DA_MOC_LAI
+  public :: LDT_DA_MOC_WL
   public :: LDT_DA_MOC_COUNT
 !  public :: LDT_MOC_GRIB_COUNT
 
@@ -50,8 +51,9 @@ module LDT_DAobsDataMod
   integer, parameter :: LDT_DA_MOC_TWS        = 4
   integer, parameter :: LDT_DA_MOC_VOD        = 5
   integer, parameter :: LDT_DA_MOC_LAI        = 6
+  integer, parameter :: LDT_DA_MOC_WL        = 7
    ! READ ABOVE NOTE ABOUT SPECIAL CASE INDICES
-  integer, parameter :: LDT_DA_MOC_COUNT      = 6
+  integer, parameter :: LDT_DA_MOC_COUNT      = 7
   ! Add the special cases.  LDT_MOC_GRIB_COUNT should be used only in
    ! LDT_gribMod.F90.
 !  integer, parameter :: LDT_MOC_GRIB_COUNT = 100
@@ -92,6 +94,7 @@ module LDT_DAobsDataMod
      type(LDT_DAmetadataEntry) :: soilmoist
      type(LDT_DAmetadataEntry) :: vod
      type(LDT_DAmetadataEntry) :: lai
+     type(LDT_DAmetadataEntry) :: wl
 
   end type output_meta
 
@@ -106,6 +109,7 @@ module LDT_DAobsDataMod
      type(LDT_DAmetadataEntry) :: tws_obs
      type(LDT_DAmetadataEntry) :: vod_obs
      type(LDT_DAmetadataEntry) :: lai_obs
+     type(LDT_DAmetadataEntry) :: wl_obs
   end type obs_list_dec
 
   type, public :: obsdep
@@ -193,6 +197,8 @@ contains
          LDT_DAobsData(i)%vod_obs,1,nsize,(/"-"/))
     call register_obsDataEntry(i,LDT_DA_MOC_LAI ,&
          LDT_DAobsData(i)%lai_obs,1,nsize,(/"-"/))
+    call register_obsDataEntry(i,LDT_DA_MOC_WL ,&
+         LDT_DAobsData(i)%wl_obs,1,nsize,(/"-"/))
   end subroutine LDT_DAobsEntryInit
 
 !BOP
@@ -463,9 +469,6 @@ contains
     if(dataEntry%selectOpt.eq.1) then 
        do r=1,LDT_rc%lnr(n)
           do c=1,LDT_rc%lnc(n)
-!             if(trim(dataEntry%standard_name).eq."SoilMoist") then                
-!                if(c.eq.61.and.r.eq.91) print*, value(c,r), dataEntry%value(c,r,k)
-!             endif
              if(LDT_rc%datamask(c,r).eq.1) then 
                 if(value(c,r).ne.LDT_rc%udef) then 
                    if(LDT_domain(n)%gindex(c,r).ne.-1) then 

@@ -40,6 +40,7 @@ contains
 !EOP
 
     use LISlsmSM_obsMod,           only : LISlsmSM_obsInit
+    use LISroutingWL_obsMod,       only : LISroutingWL_obsInit
     use syntheticsm_obsMod,        only : syntheticsm_obsinit
     use NASA_AMSREsm_obsMod,       only : NASA_AMSREsm_obsInit
     use LPRM_AMSREsm_obsMod,       only : LPRM_AMSREsm_obsInit
@@ -62,8 +63,10 @@ contains
     use NASASMAPvod_obsMod,        only : NASASMAPvod_obsinit
     use GLASSlai_obsMod,           only : GLASSlai_obsinit
     use LPRMvod_obsMod,            only : LPRMvod_obsinit
+    use hydrowebWL_obsMod,         only : hydrowebWL_obsinit
 
     external readLISlsmSMObs
+    external readLISroutingWLObs
     external readsyntheticsmobs
     external readNASA_AMSREsmObs
     external readLPRM_AMSREsmObs
@@ -86,9 +89,15 @@ contains
     external readNASASMAPvodObs
     external readGLASSlaiObs
     external readLPRMvodObs
+    external readhydrowebWLobs
 
     call registerdaobssetup(trim(LDT_LISlsmSMobsId)//char(0), LISlsmSM_obsInit)
     call registerdaobsread(trim(LDT_LISlsmSMobsId)//char(0), readLISlsmSMObs)
+
+    call registerdaobssetup(trim(LDT_LISroutingWLobsId)//char(0), &
+         LISroutingWL_obsInit)
+    call registerdaobsread(trim(LDT_LISroutingWLobsId)//char(0), &
+         readLISroutingWLObs)
 
     call registerdaobssetup(trim(LDT_syntheticSMobsId)//char(0), &
          syntheticSM_obsinit)
@@ -195,11 +204,15 @@ contains
     call registerdaobsread(trim(LDT_GLASSlaiobsId)//char(0),&
          readGLASSlaiObs)
 
-
     call registerdaobssetup(trim(LDT_LPRMvodobsId)//char(0),&
          LPRMvod_obsinit)
     call registerdaobsread(trim(LDT_LPRMvodobsId)//char(0),&
          readLPRMvodObs)
+
+    call registerdaobssetup(trim(LDT_hydrowebwlobsId)//char(0),&
+          hydrowebWL_obsinit)
+    call registerdaobsread(trim(LDT_hydrowebwlobsId)//char(0),&
+         readhydrowebWLobs)
 
   end subroutine LDT_DAobs_plugin
 end module LDT_DAobs_pluginMod

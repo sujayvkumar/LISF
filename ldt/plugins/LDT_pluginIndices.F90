@@ -58,6 +58,8 @@ module LDT_pluginIndices
 !-------------------------------------------------------------------------
    character*50, public,  parameter :: LDT_LISlsmSMobsId              &
         = "LIS LSM soil moisture"
+   character*50, public,  parameter :: LDT_LISroutingWLobsId          &
+        = "LIS routing water level"
    character*50, public,  parameter :: LDT_syntheticSMobsId           &
         = "Synthetic soil moisture"
    character*50, public,  parameter :: LDT_NASA_AMSREsmobsId          &
@@ -102,6 +104,8 @@ module LDT_pluginIndices
         = "GLASS LAI"
    character*50, public,  parameter :: LDT_LPRMvodobsId            &
         = "LPRM vegetation optical depth"
+   character*50, public,  parameter :: LDT_hydrowebwlobsId            &
+        = "Hydroweb water level"
 
 !-------------------------------------------------------------------------
 ! Meteorological forcings

@@ -204,6 +204,51 @@ struct routingdasetpertnode
 } ;
 struct routingdasetpertnode* routingdasetpert_table = NULL;
 
+struct routingpesetupobsprednode
+{ 
+  char *name;
+  void (*func)(void*);
+
+  struct routingpesetupobsprednode* next;
+} ;
+
+struct routingpesetupobsprednode* routingpesetupobspred_table = NULL;
+
+struct routingpeobsprednode
+{ 
+  char *name;
+  void (*func)(void*);
+
+  struct routingpeobsprednode* next;
+} ;
+struct routingpeobsprednode* routingpeobspred_table = NULL;
+
+struct routingpesetupdecnode
+{ 
+  char *name;
+  void (*func)(void*, void*);
+
+  struct routingpesetupdecnode* next;
+} ;
+struct routingpesetupdecnode* routingpesetupdec_table = NULL;
+
+struct routingpesetdecnode
+{ 
+  char *name;
+  void (*func)(void*, void*);
+
+  struct routingpesetdecnode* next;
+} ;
+struct routingpesetdecnode* routingpesetdec_table = NULL;
+
+struct routingresetnode
+{ 
+  char *name;
+  void (*func)();
+
+  struct routingresetnode* next;
+} ;
+struct routingresetnode* routingreset_table = NULL; 
 
 //BOP
 // !ROUTINE: registerroutinginit
@@ -1646,3 +1691,380 @@ void FTN(routingdasetpertstates)(char *j, int *n, int *Nstate, void *pstate, voi
 }
 
 
+//BOP
+// !ROUTINE: registerroutingpesetupobspred
+// \label{registerroutingpesetupobspred}
+// 
+// !INTERFACE:
+void FTN(registerroutingpesetupobspred)(char *j, void (*func)(void*),int len)
+//  
+// !DESCRIPTION: 
+//  registers the method to initialize the obs pred for the PE observation
+//  (model simulated value of the observation)
+//  
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING + PE instance
+//  \end{description}
+//EOP
+{ 
+  int len1;
+  struct routingpesetupobsprednode* current;
+  struct routingpesetupobsprednode* pnode; 
+  // create node
+  
+  len1 = len + 1; // ensure that there is space for terminating null
+  pnode=(struct routingpesetupobsprednode*) malloc(sizeof(struct routingpesetupobsprednode));
+  pnode->name=(char*) calloc(len1,sizeof(char));
+  strncpy(pnode->name,j,len);
+  pnode->func = func;
+  pnode->next = NULL; 
+
+  if(routingpesetupobspred_table == NULL){
+    routingpesetupobspred_table = pnode;
+  }
+  else{
+    current = routingpesetupobspred_table; 
+    while(current->next!=NULL){
+      current = current->next;
+    }
+    current->next = pnode; 
+  }
+
+}
+//BOP
+// !ROUTINE: routingpesetupobspredspace
+// \label{routingpesetupobspredspace}
+// 
+// !INTERFACE:
+void FTN(routingpesetupobspredspace)(char *j, void *pepred, int len)
+//  
+// !DESCRIPTION: 
+//   invokes the method to compute the obs pred for the PE observation
+//  (model simulated value of the observation)
+//
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING + PE instance
+//  \item[pepred]
+//   object containing the PE obspred 
+//  \end{description}
+//EOP
+{ 
+  struct routingpesetupobsprednode* current;
+  
+  current = routingpesetupobspred_table;
+  while(strcmp(current->name,j)!=0){
+    current = current->next;
+    if(current==NULL) {
+      printf("****************Error****************************\n"); 
+      printf("setup obspred routine for ROUTING + PE instance %s is not defined\n",j); 
+      printf("program will seg fault.....\n"); 
+      printf("****************Error****************************\n"); 
+    }
+  }
+  current->func(pepred); 
+}
+
+//BOP
+// !ROUTINE: registerroutingpegetobspred
+// \label{registerroutingpegetobspred}
+// 
+// !INTERFACE:
+void FTN(registerroutingpegetobspred)(char *j, void (*func)(void*),int len)
+//  
+// !DESCRIPTION: 
+//  registers the method to compute the obs pred for the PE observation
+//  (model simulated value of the observation)
+//  
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING
+//  \end{description}
+//EOP
+{ 
+  int len1;
+  struct routingpeobsprednode* current;
+  struct routingpeobsprednode* pnode; 
+  // create node
+  
+  len1 = len + 1; // ensure that there is space for terminating null
+  pnode=(struct routingpeobsprednode*) malloc(sizeof(struct routingpeobsprednode));
+  pnode->name=(char*) calloc(len1,sizeof(char));
+  strncpy(pnode->name,j,len);
+  pnode->func = func;
+  pnode->next = NULL; 
+
+  if(routingpeobspred_table == NULL){
+    routingpeobspred_table = pnode;
+  }
+  else{
+    current = routingpeobspred_table; 
+    while(current->next!=NULL){
+      current = current->next;
+    }
+    current->next = pnode; 
+  }
+
+}
+//BOP
+// !ROUTINE: routingpegetobspred
+// \label{routingpegetobspred}
+// 
+// !INTERFACE:
+void FTN(routingpegetobspred)(char *j, void *pepred, int len)
+//  
+// !DESCRIPTION: 
+//   invokes the method to compute the obs pred for the PE observation
+//  (model simulated value of the observation)
+//
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING + PE instance
+//  \item[pepred]
+//   object containing the PE obspred 
+//  \end{description}
+//EOP
+{ 
+  struct routingpeobsprednode* current;
+  
+  current = routingpeobspred_table;
+  while(strcmp(current->name,j)!=0){
+    current = current->next;
+    if(current==NULL) {
+      printf("****************Error****************************\n"); 
+      printf("PE obspred routine for ROUTING + PE instance %s is not defined\n",j); 
+      printf("program will seg fault.....\n"); 
+      printf("****************Error****************************\n"); 
+    }
+  }
+  current->func(pepred); 
+}
+
+//BOP
+// !ROUTINE: registerroutingpesetupdecisionspace
+// \label{registerroutingpesetupdecisionspace}
+// 
+// !INTERFACE:
+void FTN(registerroutingpesetupdecisionspace)(char *j, void (*func)(void*, void*),int len)
+//  
+// !DESCRIPTION: 
+//  Method to registry an interface implementation for 
+//   setting up the ROUTING decision space. 
+//
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING
+//  \end{description}
+//EOP
+{ 
+  int len1;
+  struct routingpesetupdecnode* current;
+  struct routingpesetupdecnode* pnode; 
+  // create node
+  
+  len1 = len + 1; // ensure that there is space for terminating null
+  pnode=(struct routingpesetupdecnode*) malloc(sizeof(struct routingpesetupdecnode));
+  pnode->name=(char*) calloc(len1,sizeof(char));
+  strncpy(pnode->name,j,len);
+  pnode->func = func;
+  pnode->next = NULL; 
+
+  if(routingpesetupdec_table == NULL){
+    routingpesetupdec_table = pnode;
+  }
+  else{
+    current = routingpesetupdec_table; 
+    while(current->next!=NULL){
+      current = current->next;
+    }
+    current->next = pnode; 
+  }
+
+}
+//BOP
+// !ROUTINE: routingpesetupdecisionspace
+// \label{routingpesetupdecisionspace}
+// 
+// !INTERFACE:
+void FTN(routingpesetupdecisionspace)(char *j, void *dec, void *feas, int len)
+//  
+// !DESCRIPTION: 
+//  Method to setup  the ROUTING decision space
+//
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING
+//  \item[dec]
+//   decision space object
+//  \item[feas]
+//   feasible space object
+//  \end{description}
+//EOP
+{ 
+  struct routingpesetupdecnode* current;
+  
+  current = routingpesetupdec_table;
+  while(strcmp(current->name,j)!=0){
+    current = current->next;
+    if(current==NULL) {
+      printf("****************Error****************************\n"); 
+      printf("setup decision space outine for ROUTING %s is not defined\n",j); 
+      printf("program will seg fault.....\n"); 
+      printf("****************Error****************************\n"); 
+    }
+  }
+  current->func(dec,feas); 
+}
+
+//BOP
+// !ROUTINE: registerroutingpesetdecisionspace
+// \label{registerroutingpesetdecisionspace}
+// 
+// !INTERFACE:
+void FTN(registerroutingpesetdecisionspace)(char *j, void (*func)(void*,void*),int len)
+//
+//  Makes an entry in the registry for the routine 
+//  to set the decision space for parameter estimation
+// !DESCRIPTION: 
+// 
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING + instance of the runmode
+//  \end{description}
+//EOP
+{ 
+  int len1;
+  struct routingpesetdecnode* current;
+  struct routingpesetdecnode* pnode; 
+  // create node
+  
+  len1 = len + 1; // ensure that there is space for terminating null
+  pnode=(struct routingpesetdecnode*) malloc(sizeof(struct routingpesetdecnode));
+  pnode->name=(char*) calloc(len1,sizeof(char));
+  strncpy(pnode->name,j,len);
+  pnode->func = func;
+  pnode->next = NULL; 
+
+  if(routingpesetdec_table == NULL){
+    routingpesetdec_table = pnode;
+  }
+  else{
+    current = routingpesetdec_table; 
+    while(current->next!=NULL){
+      current = current->next;
+    }
+    current->next = pnode; 
+  }
+
+}
+//BOP
+// !ROUTINE: routingpesetdecisionspace
+// \label{routingpesetdecisionspace}
+// 
+// !INTERFACE:
+void FTN(routingpesetdecisionspace)(char *j, void *dec, void *feas, int len)
+//  
+// !DESCRIPTION: 
+//  Invokes the routine from the registry to set the 
+//  decision space for parameter estimation
+//
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING
+//  \item[dec]
+//   decision space object
+//  \item[feas]
+//   feasible space object
+//  \end{description}
+//EOP
+{ 
+  struct routingpesetdecnode* current;
+  
+  current = routingpesetdec_table;
+  while(strcmp(current->name,j)!=0){
+    current = current->next;
+    if(current==NULL) {
+      printf("****************Error****************************\n"); 
+      printf("set decision space routine for ROUTING %s is not defined\n",j); 
+      printf("program will seg fault.....\n"); 
+      printf("****************Error****************************\n"); 
+    }
+  }
+  current->func(dec,feas);
+}
+
+//BOP
+// !ROUTINE: registerroutingreset
+// \label{registerroutingreset}
+//
+// !INTERFACE:
+void FTN(registerroutingreset)(char *j, void (*func)(),int len)
+//  
+// !DESCRIPTION:
+//  Creates an entry in the registry for the routine
+//  to cleanup allocated structures specific to the 
+//  land surface model
+// 
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING
+//  \end{description}
+// 
+//EOP
+{ 
+  int len1;
+  struct routingresetnode* current;
+  struct routingresetnode* pnode; 
+  // create node
+  
+  len1 = len + 1; // ensure that there is space for terminating null
+  pnode=(struct routingresetnode*) malloc(sizeof(struct routingresetnode));
+  pnode->name=(char*) calloc(len1,sizeof(char));
+  strncpy(pnode->name,j,len);
+  pnode->func = func;
+  pnode->next = NULL; 
+
+  if(routingreset_table == NULL){
+    routingreset_table = pnode;
+  }
+  else{
+    current = routingreset_table; 
+    while(current->next!=NULL){
+      current = current->next;
+    }
+    current->next = pnode; 
+  }
+}
+//BOP
+// !ROUTINE: routingreset
+// \label{routingreset}
+//
+// !INTERFACE:
+void FTN(routingreset)(char *j,int len)
+//  
+// !DESCRIPTION: 
+//  Invokes the routine from the registry for cleaning up
+//  allocated structures specific to the land surface model
+// 
+//  \begin{description}
+//  \item[j]
+//   name of the ROUTING
+//  \end{description}
+// 
+//EOP
+{
+  struct routingresetnode* current;
+  
+  current = routingreset_table;
+  while(strcmp(current->name,j)!=0){
+    current = current->next;
+    if(current==NULL) {
+      printf("****************Error****************************\n"); 
+      printf("reset routine for ROUTING %s is not defined\n",j); 
+      printf("program will seg fault.....\n"); 
+      printf("****************Error****************************\n"); 
+    }
+  }
+  current->func(); 
+}

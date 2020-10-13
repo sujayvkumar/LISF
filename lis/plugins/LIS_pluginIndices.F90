@@ -284,6 +284,8 @@ module LIS_pluginIndices
         "ASO SWE"
    character*50, public,  parameter :: LIS_synwlId             = &
         "Synthetic water level"
+   character*50, public,  parameter :: LIS_hydrowebwlId        = &
+        "Hydroweb water level"
 !-------------------------------------------------------------------------
 ! Bias Estimation Algorithms
 !-------------------------------------------------------------------------
@@ -321,6 +323,7 @@ module LIS_pluginIndices
    character*50, public,  parameter :: LIS_ISMNsmobsId = "ISMN sm" 
    character*50, public,  parameter :: LIS_SMAPsmobsId = "SMAP sm"
    character*50, public,  parameter :: LIS_UAsnowobsId = "UA snow"
+   character*50, public,  parameter :: LIS_AmazonSFobsId = "Amazon streamflow"
 !-------------------------------------------------------------------------
 ! Objective Function Evaluation Criteria
 !-------------------------------------------------------------------------

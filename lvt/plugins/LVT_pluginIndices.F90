@@ -256,6 +256,8 @@ module LVT_pluginIndices
    character*50, public,  parameter :: LVT_IMERGdataId = "GPM IMERG"
    character*50, public,  parameter :: LVT_UASNOWdataId = "UA SNOW"
    character*50, public,  parameter :: LVT_ozFluxdataId = "OzFlux"
+   character*50, public,  parameter :: LVT_amazonSFdataId = "Amazon streamflow"
+   character*50, public,  parameter :: LVT_hydrowebWLdataId = "Hydroweb water level"
 
 !-------------------------------------------------------------------------
 ! Training algorithms

@@ -103,6 +103,9 @@ contains
     integer :: n
     integer :: k
     integer :: m
+    integer :: kk
+    integer :: c,r
+    integer :: cg,rg
     integer :: gindex, ntiles
     integer, allocatable :: deblklist(:,:,:)
     integer :: stid, enid
@@ -125,263 +128,329 @@ contains
     
     allocate(LDT_rc%nensem(LDT_rc%nnest))
     LDT_rc%nensem(:) = 1
+
+
     call ESMF_ConfigFindLabel(LDT_config,"Number of ensembles per tile:",rc=status)
     do n=1,LDT_rc%nnest
        call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%nensem(n),rc=status)
        call LDT_verify(status,'Number of ensembles per tile: not defined')
     enddo
-       
-    allocate(LDT_rc%npatch(LDT_rc%nnest, LDT_rc%max_model_types))
-    
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%surface_maxt,&
-         label="Maximum number of surface type tiles per grid:",rc=status)
-    call LDT_verify(status,'Maximum number of surface type tiles per grid: not defined')
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%surface_minp,&
-         label="Minimum cutoff percentage (surface type tiles):",rc=status)
-    call LDT_verify(status,&
-         'Minimum cutoff percentage (surface type tiles): not defined')
-    
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilt_maxt,&
-         label="Maximum number of soil texture tiles per grid:",rc=status)
-    call LDT_verify(status,'Maximum number of soil texture tiles per grid: not defined')
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilt_minp,&
-         label="Minimum cutoff percentage (soil texture tiles):",rc=status)
-    call LDT_verify(status,&
-         'Minimum cutoff percentage (soil texture tiles): not defined')
-    
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilf_maxt,&
-         label="Maximum number of soil fraction tiles per grid:",rc=status)
-    call LDT_verify(status,'Maximum number of soil fraction tiles per grid: not defined')
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilf_minp,&
-         label="Minimum cutoff percentage (soil fraction tiles):",rc=status)
-    call LDT_verify(status,&
-         'Minimum cutoff percentage (soil fraction tiles): not defined')
 
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%elev_maxt,&
-         label="Maximum number of elevation bands per grid:",rc=status)
-    call LDT_verify(status,'Maximum number of elevation bands per grid: not defined')
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%elev_minp,&
-         label="Minimum cutoff percentage (elevation bands):",rc=status)
-    call LDT_verify(status,&
-         'Minimum cutoff percentage (elevation bands): not defined')
-
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%slope_maxt,&
-         label="Maximum number of slope bands per grid:",rc=status)
-    call LDT_verify(status,'Maximum number of slope bands per grid: not defined')
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%slope_minp,&
-         label="Minimum cutoff percentage (slope bands):",rc=status)
-    call LDT_verify(status,&
-         'Minimum cutoff percentage (slope bands): not defined')
-    
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%aspect_maxt,&
-         label="Maximum number of aspect bands per grid:",rc=status)
-    call LDT_verify(status,'Maximum number of aspect bands per grid: not defined')
-    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%aspect_minp,&
-         label="Minimum cutoff percentage (aspect bands):",rc=status)
-    call LDT_verify(status,&
-         'Minimum cutoff percentage (aspect bands): not defined')
-    
-!-- Create vegetation tile and grid space:
-    call make_domain()
-
-
-!-- Temporary addition needed for writing output diagnostics(LDT_diagnoseOutputVar):
     do n=1,LDT_rc%nnest
-       do k = 1, LDT_rc%ngrid(n)
-!TODO: clean this up with ntiles_pergrid array instead of maximum 
-          allocate(LDT_domain(n)%grid(k)%subgrid_tiles(&
-               LDT_rc%surface_maxt*&
-               LDT_rc%soilt_maxt*&
-               LDT_rc%elev_maxt*&
-               LDT_rc%slope_maxt*&
-               LDT_rc%aspect_maxt*&
-               LDT_rc%nensem(n)))
-          LDT_domain(n)%grid(k)%ntiles = 0
-       enddo
-       do k = 1, LDT_rc%ntiles(n)
-          gindex = LDT_domain(n)%tile(k)%index
-          LDT_domain(n)%grid(gindex)%ntiles = &
-             LDT_domain(n)%grid(gindex)%ntiles + 1
-          ntiles = LDT_domain(n)%grid(gindex)%ntiles
-          LDT_domain(n)%grid(gindex)%subgrid_tiles(ntiles) = k
-       enddo
+       allocate(LDT_rc%datamask(LDT_rc%lnc(n), LDT_rc%lnr(n)))
     enddo
+    LDT_rc%datamask = 1
+    
+        
+    if(LDT_rc%DAmodelClass.eq."LSM") then 
+       allocate(LDT_rc%npatch(LDT_rc%nnest, LDT_rc%max_model_types))
+       
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%surface_maxt,&
+            label="Maximum number of surface type tiles per grid:",rc=status)
+       call LDT_verify(status,'Maximum number of surface type tiles per grid: not defined')
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%surface_minp,&
+            label="Minimum cutoff percentage (surface type tiles):",rc=status)
+       call LDT_verify(status,&
+            'Minimum cutoff percentage (surface type tiles): not defined')
+       
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilt_maxt,&
+         label="Maximum number of soil texture tiles per grid:",rc=status)
+       call LDT_verify(status,'Maximum number of soil texture tiles per grid: not defined')
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilt_minp,&
+            label="Minimum cutoff percentage (soil texture tiles):",rc=status)
+       call LDT_verify(status,&
+            'Minimum cutoff percentage (soil texture tiles): not defined')
+       
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilf_maxt,&
+            label="Maximum number of soil fraction tiles per grid:",rc=status)
+       call LDT_verify(status,'Maximum number of soil fraction tiles per grid: not defined')
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%soilf_minp,&
+            label="Minimum cutoff percentage (soil fraction tiles):",rc=status)
+       call LDT_verify(status,&
+            'Minimum cutoff percentage (soil fraction tiles): not defined')
+       
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%elev_maxt,&
+            label="Maximum number of elevation bands per grid:",rc=status)
+       call LDT_verify(status,'Maximum number of elevation bands per grid: not defined')
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%elev_minp,&
+            label="Minimum cutoff percentage (elevation bands):",rc=status)
+       call LDT_verify(status,&
+            'Minimum cutoff percentage (elevation bands): not defined')
+       
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%slope_maxt,&
+            label="Maximum number of slope bands per grid:",rc=status)
+       call LDT_verify(status,'Maximum number of slope bands per grid: not defined')
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%slope_minp,&
+            label="Minimum cutoff percentage (slope bands):",rc=status)
+       call LDT_verify(status,&
+            'Minimum cutoff percentage (slope bands): not defined')
+       
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%aspect_maxt,&
+            label="Maximum number of aspect bands per grid:",rc=status)
+       call LDT_verify(status,'Maximum number of aspect bands per grid: not defined')
+       call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%aspect_minp,&
+            label="Minimum cutoff percentage (aspect bands):",rc=status)
+       call LDT_verify(status,&
+            'Minimum cutoff percentage (aspect bands): not defined')
+       
+       !-- Create vegetation tile and grid space:
+       call make_domain()
+              
+!-- Temporary addition needed for writing output diagnostics(LDT_diagnoseOutputVar):
+       do n=1,LDT_rc%nnest
+          do k = 1, LDT_rc%ngrid(n)
+!TODO: clean this up with ntiles_pergrid array instead of maximum 
+             allocate(LDT_domain(n)%grid(k)%subgrid_tiles(&
+                  LDT_rc%surface_maxt*&
+                  LDT_rc%soilt_maxt*&
+                  LDT_rc%elev_maxt*&
+                  LDT_rc%slope_maxt*&
+                  LDT_rc%aspect_maxt*&
+                  LDT_rc%nensem(n)))
+             LDT_domain(n)%grid(k)%ntiles = 0
+          enddo
+          do k = 1, LDT_rc%ntiles(n)
+             gindex = LDT_domain(n)%tile(k)%index
+             LDT_domain(n)%grid(gindex)%ntiles = &
+                  LDT_domain(n)%grid(gindex)%ntiles + 1
+             ntiles = LDT_domain(n)%grid(gindex)%ntiles
+             LDT_domain(n)%grid(gindex)%subgrid_tiles(ntiles) = k
+          enddo
+       enddo
 
     
 !-- Begin decomposition of tiles and gridcells for MPI calls:
-    do n=1,LDT_rc%nnest
-       LDT_ntiless(n,LDT_localPet) = LDT_rc%ntiles(n)
-       LDT_tdeltas(n,LDT_localPet) = LDT_rc%ntiles(n)
+       do n=1,LDT_rc%nnest
+          LDT_ntiless(n,LDT_localPet) = LDT_rc%ntiles(n)
+          LDT_tdeltas(n,LDT_localPet) = LDT_rc%ntiles(n)
+          
+          do m=1,LDT_rc%max_model_types
+             LDT_npatches(n,m,LDT_localPet) = LDT_rc%npatch(n,m)
+             LDT_patch_deltas(n,m,LDT_localPet) = LDT_rc%npatch(n,m)
+          enddo
 
-       do m=1,LDT_rc%max_model_types
-          LDT_npatches(n,m,LDT_localPet) = LDT_rc%npatch(n,m)
-          LDT_patch_deltas(n,m,LDT_localPet) = LDT_rc%npatch(n,m)
-       enddo
-
-       LDT_ngrids(n,LDT_localPet)  = LDT_rc%ngrid(n)
-       LDT_gdeltas(n,LDT_localPet) = LDT_rc%ngrid(n)
-
+          LDT_ngrids(n,LDT_localPet)  = LDT_rc%ngrid(n)
+          LDT_gdeltas(n,LDT_localPet) = LDT_rc%ngrid(n)
+          
 !-----------------------------------------------------------------------------
 !  The grid, tile space sizes of the decomposed domains are gathered 
 !  from each processor to compute the total sizes of the entire domain. 
 !-----------------------------------------------------------------------------
 #if (defined SPMD)
-       call MPI_ALLGATHER(LDT_ntiless(n,LDT_localPet),1,MPI_INTEGER,&
-            LDT_ntiless(n,:),1,MPI_INTEGER,&
-            MPI_COMM_WORLD,ierr)
-       call MPI_ALLGATHER(LDT_ngrids(n,LDT_localPet),1,MPI_INTEGER,&
-            LDT_ngrids(n,:),1,MPI_INTEGER,&
-            MPI_COMM_WORLD,ierr)
-       call MPI_ALLGATHER(LDT_tdeltas(n,LDT_localPet),1,MPI_INTEGER,&
-            LDT_tdeltas(n,:),1,MPI_INTEGER,&
-            MPI_COMM_WORLD,ierr)
-       call MPI_ALLGATHER(LDT_gdeltas(n,LDT_localPet),1,MPI_INTEGER,&
-            LDT_gdeltas(n,:),1,MPI_INTEGER,&
-            MPI_COMM_WORLD,ierr)
-
-       do m=1,LDT_rc%max_model_types
-          call MPI_ALLGATHER(LDT_npatches(n,m,LDT_localPet),1,MPI_INTEGER,&
-               LDT_npatches(n,m,:),1,MPI_INTEGER, &
+          call MPI_ALLGATHER(LDT_ntiless(n,LDT_localPet),1,MPI_INTEGER,&
+               LDT_ntiless(n,:),1,MPI_INTEGER,&
                MPI_COMM_WORLD,ierr)
-       enddo
-       do m=1,LDT_rc%max_model_types
-          call MPI_ALLGATHER(LDT_patch_deltas(n,m,LDT_localPet),1,MPI_INTEGER,&
-               LDT_patch_deltas(n,m,:),1,MPI_INTEGER, &
+          call MPI_ALLGATHER(LDT_ngrids(n,LDT_localPet),1,MPI_INTEGER,&
+               LDT_ngrids(n,:),1,MPI_INTEGER,&
                MPI_COMM_WORLD,ierr)
-       enddo
+          call MPI_ALLGATHER(LDT_tdeltas(n,LDT_localPet),1,MPI_INTEGER,&
+               LDT_tdeltas(n,:),1,MPI_INTEGER,&
+               MPI_COMM_WORLD,ierr)
+          call MPI_ALLGATHER(LDT_gdeltas(n,LDT_localPet),1,MPI_INTEGER,&
+               LDT_gdeltas(n,:),1,MPI_INTEGER,&
+               MPI_COMM_WORLD,ierr)
+          
+          do m=1,LDT_rc%max_model_types
+             call MPI_ALLGATHER(LDT_npatches(n,m,LDT_localPet),1,MPI_INTEGER,&
+                  LDT_npatches(n,m,:),1,MPI_INTEGER, &
+                  MPI_COMM_WORLD,ierr)
+          enddo
+          do m=1,LDT_rc%max_model_types
+             call MPI_ALLGATHER(LDT_patch_deltas(n,m,LDT_localPet),1,MPI_INTEGER,&
+                  LDT_patch_deltas(n,m,:),1,MPI_INTEGER, &
+                  MPI_COMM_WORLD,ierr)
+          enddo
 #endif
-
-       LDT_rc%glbntiles(n) = 0 
-       do i=0,LDT_npes-1
-          LDT_rc%glbntiles = LDT_rc%glbntiles(n) + LDT_ntiless(n,i)
-       enddo
-       
-       LDT_rc%glbngrid(n) = 0 
-       do i=0,LDT_npes-1
-          LDT_rc%glbngrid(n) = LDT_rc%glbngrid(n) + LDT_ngrids(n,i)
-       enddo
-
-       do m=1,LDT_rc%max_model_types
-          LDT_rc%glbnpatch(n,m) = 0 
+          
+          LDT_rc%glbntiles(n) = 0 
           do i=0,LDT_npes-1
-             LDT_rc%glbnpatch(n,m) = LDT_rc%glbnpatch(n,m)+ LDT_npatches(n,m,i)
-          enddo
-       enddo
-       
-       if(LDT_masterproc) then 
-          LDT_toffsets(n,0) = 0 
-          do i=1,LDT_npes-1
-             LDT_toffsets(n,i) = LDT_toffsets(n,i-1)+LDT_tdeltas(n,i-1)
-          enddo
-          LDT_goffsets(n,0) = 0 
-          do i=1,LDT_npes-1
-             LDT_goffsets(n,i) = LDT_goffsets(n,i-1)+LDT_gdeltas(n,i-1)
+             LDT_rc%glbntiles = LDT_rc%glbntiles(n) + LDT_ntiless(n,i)
           enddo
           
-          LDT_patch_offsets(n,:,0) =0
-          do i=1,LDT_npes-1
-             do m=1,LDT_rc%max_model_types
-                LDT_patch_offsets(n,m,i) = LDT_patch_offsets(n,m,i-1)+&
-                     LDT_patch_deltas(n,m,i-1)
+          LDT_rc%glbngrid(n) = 0 
+          do i=0,LDT_npes-1
+             LDT_rc%glbngrid(n) = LDT_rc%glbngrid(n) + LDT_ngrids(n,i)
+          enddo
+          
+          do m=1,LDT_rc%max_model_types
+             LDT_rc%glbnpatch(n,m) = 0 
+             do i=0,LDT_npes-1
+                LDT_rc%glbnpatch(n,m) = LDT_rc%glbnpatch(n,m)+ LDT_npatches(n,m,i)
              enddo
           enddo
-       end if
-       
+          
+          if(LDT_masterproc) then 
+             LDT_toffsets(n,0) = 0 
+             do i=1,LDT_npes-1
+                LDT_toffsets(n,i) = LDT_toffsets(n,i-1)+LDT_tdeltas(n,i-1)
+             enddo
+             LDT_goffsets(n,0) = 0 
+             do i=1,LDT_npes-1
+                LDT_goffsets(n,i) = LDT_goffsets(n,i-1)+LDT_gdeltas(n,i-1)
+             enddo
+             
+             LDT_patch_offsets(n,:,0) =0
+             do i=1,LDT_npes-1
+                do m=1,LDT_rc%max_model_types
+                   LDT_patch_offsets(n,m,i) = LDT_patch_offsets(n,m,i-1)+&
+                        LDT_patch_deltas(n,m,i-1)
+                enddo
+             enddo
+          end if
+          
 #if (defined SPMD)
-       call MPI_BCAST(LDT_toffsets(n,:), LDT_npes, MPI_INTEGER,0, &
-            MPI_COMM_WORLD, ierr)
-       call MPI_BCAST(LDT_goffsets(n,:), LDT_npes, MPI_INTEGER,0, &   ! updated for parallel
-            MPI_COMM_WORLD, ierr)
-       do m=1,LDT_rc%max_model_types
-          call MPI_BCAST(LDT_patch_offsets(n,m,:), LDT_npes, MPI_INTEGER,0, &
+          call MPI_BCAST(LDT_toffsets(n,:), LDT_npes, MPI_INTEGER,0, &
                MPI_COMM_WORLD, ierr)
-       enddo
+          call MPI_BCAST(LDT_goffsets(n,:), LDT_npes, MPI_INTEGER,0, &   ! updated for parallel
+               MPI_COMM_WORLD, ierr)
+          do m=1,LDT_rc%max_model_types
+             call MPI_BCAST(LDT_patch_offsets(n,m,:), LDT_npes, MPI_INTEGER,0, &
+                  MPI_COMM_WORLD, ierr)
+          enddo
 #endif
-       
-       allocate(deblklist(1,2,LDT_npes))      
-       do i=0,LDT_npes-1
-          stid = LDT_toffsets(n,i)+1
-          enid = stid + LDT_ntiless(n,i)-1
-
-          deblklist(:,1,i+1) = (/stid/)
-          deblklist(:,2,i+1) = (/enid/)          
-       enddo
-
-       tileDG = ESMF_DistGridCreate(minIndex=(/1/), maxIndex=(/LDT_rc%glbntiles(n)/),&
-            deBlockList=deblklist,rc=status)
-       call LDT_verify(status)
-
-       do i=0,LDT_npes-1
-          stid = LDT_goffsets(n,i)+1
-          enid = stid + LDT_ngrids(n,i)-1
-
-          deblklist(:,1,i+1) = (/stid/)
-          deblklist(:,2,i+1) = (/enid/)
-       enddo
-
-       gridDG = ESMF_DistGridCreate(minIndex=(/1/), maxIndex=(/LDT_rc%glbngrid(n)/),&
-            deBlockList=deblklist,rc=status)
-       call LDT_verify(status)
-
-       do m=1,LDT_rc%max_model_types
-
+          
+          allocate(deblklist(1,2,LDT_npes))      
           do i=0,LDT_npes-1
-             stid = LDT_patch_offsets(n,m,i)+1
-             enid = stid + LDT_npatches(n,m,i)-1
+             stid = LDT_toffsets(n,i)+1
+             enid = stid + LDT_ntiless(n,i)-1
+             
+             deblklist(:,1,i+1) = (/stid/)
+             deblklist(:,2,i+1) = (/enid/)          
+          enddo
+          
+          tileDG = ESMF_DistGridCreate(minIndex=(/1/), &
+               maxIndex=(/LDT_rc%glbntiles(n)/),&
+               deBlockList=deblklist,rc=status)
+          call LDT_verify(status)
+          
+          do i=0,LDT_npes-1
+             stid = LDT_goffsets(n,i)+1
+             enid = stid + LDT_ngrids(n,i)-1
              
              deblklist(:,1,i+1) = (/stid/)
              deblklist(:,2,i+1) = (/enid/)
           enddo
-
-          patchDG(m) = ESMF_DistGridCreate(minIndex=(/1/),&
-               maxIndex=(/LDT_rc%glbnpatch(n,m)/),&
+          
+          gridDG = ESMF_DistGridCreate(minIndex=(/1/), maxIndex=(/LDT_rc%glbngrid(n)/),&
                deBlockList=deblklist,rc=status)
           call LDT_verify(status)
-       enddo
+          
+          do m=1,LDT_rc%max_model_types
+             
+             do i=0,LDT_npes-1
+                stid = LDT_patch_offsets(n,m,i)+1
+                enid = stid + LDT_npatches(n,m,i)-1
+                
+                deblklist(:,1,i+1) = (/stid/)
+                deblklist(:,2,i+1) = (/enid/)
+             enddo
+             
+             patchDG(m) = ESMF_DistGridCreate(minIndex=(/1/),&
+                  maxIndex=(/LDT_rc%glbnpatch(n,m)/),&
+                  deBlockList=deblklist,rc=status)
+             call LDT_verify(status)
+          enddo
+          
+          deallocate(deblklist)
 
-       deallocate(deblklist)
-
-       allocate(deblklist(2,2,LDT_npes))
-       do i=0,LDT_npes-1
-          stid = LDT_goffsets(n,i)+1
-          enid = stid+LDT_ngrids(n,i)-1
-          deblklist(:,1,i+1) = (/stid,1/)
-          deblklist(:,2,i+1) = (/enid,LDT_rc%nensem(n)/)
-       enddo
-
-       gridEnsDG = ESMF_DistGridCreate(minIndex=(/1,1/),&
-            maxIndex=(/LDT_rc%glbngrid(n),LDT_rc%nensem(n)/),&
-            deBlockList=deblklist,rc=status)
-       call LDT_verify(status)
-
-       LDT_vecTile(n) = ESMF_GridCreate(name = "LDT Tile Space",&
-            coordTypeKind=ESMF_TYPEKIND_R4, distGrid = tileDG,&
-            gridEdgeLWidth=(/0/), gridEdgeUWidth=(/0/),rc=status)
-       call LDT_verify(status)
-
-       LDT_vecGrid(n) = ESMF_GridCreate(name = "LDT Grid Space",&
-            coordTypeKind=ESMF_TYPEKIND_R4, distGrid = gridDG,&
-            gridEdgeLWidth=(/0/), gridEdgeUWidth=(/0/),rc=status)
-       call LDT_verify(status)
-
-
-       LDT_ensOngrid(n) = ESMF_GridCreate(name = "LDT Grid Ensemble Space",&
-            coordTypeKind = ESMF_TYPEKIND_R4, distGrid = gridEnsDG,&
-            gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,0/),rc=status)
-       call LDT_verify(status)
-
-       do m=1,LDT_rc%max_model_types
-          LDT_vecPatch(n,m) = ESMF_GridCreate(name="LDT Patch Space",&
-               coordTypeKind=ESMF_TYPEKIND_R4, distGrid = patchDG(m),&
+          allocate(deblklist(2,2,LDT_npes))
+          do i=0,LDT_npes-1
+             stid = LDT_goffsets(n,i)+1
+             enid = stid+LDT_ngrids(n,i)-1
+             deblklist(:,1,i+1) = (/stid,1/)
+             deblklist(:,2,i+1) = (/enid,LDT_rc%nensem(n)/)
+          enddo
+          
+          gridEnsDG = ESMF_DistGridCreate(minIndex=(/1,1/),&
+               maxIndex=(/LDT_rc%glbngrid(n),LDT_rc%nensem(n)/),&
+               deBlockList=deblklist,rc=status)
+          call LDT_verify(status)
+          
+          LDT_vecTile(n) = ESMF_GridCreate(name = "LDT Tile Space",&
+               coordTypeKind=ESMF_TYPEKIND_R4, distGrid = tileDG,&
                gridEdgeLWidth=(/0/), gridEdgeUWidth=(/0/),rc=status)
           call LDT_verify(status)
+          
+          LDT_vecGrid(n) = ESMF_GridCreate(name = "LDT Grid Space",&
+               coordTypeKind=ESMF_TYPEKIND_R4, distGrid = gridDG,&
+               gridEdgeLWidth=(/0/), gridEdgeUWidth=(/0/),rc=status)
+          call LDT_verify(status)
+          
+          
+          LDT_ensOngrid(n) = ESMF_GridCreate(name = "LDT Grid Ensemble Space",&
+               coordTypeKind = ESMF_TYPEKIND_R4, distGrid = gridEnsDG,&
+               gridEdgeLWidth=(/0,0/), gridEdgeUWidth=(/0,0/),rc=status)
+          call LDT_verify(status)
+          
+          do m=1,LDT_rc%max_model_types
+             LDT_vecPatch(n,m) = ESMF_GridCreate(name="LDT Patch Space",&
+                  coordTypeKind=ESMF_TYPEKIND_R4, distGrid = patchDG(m),&
+                  gridEdgeLWidth=(/0/), gridEdgeUWidth=(/0/),rc=status)
+             call LDT_verify(status)
+          enddo
+          deallocate(deblklist)
+          
+          
        enddo
-       deallocate(deblklist)
+    elseif(LDT_rc%DAmodelClass.eq."Routing") then
 
-       allocate(LDT_rc%datamask(LDT_rc%lnc(n), LDT_rc%lnr(n)))
-       LDT_rc%datamask = 1
+       do n=1, LDT_rc%nnest
 
-    enddo
+          LDT_rc%ngrid(n)=0
+          do r=1,LDT_rc%lnr(n)
+             do c=1,LDT_rc%lnc(n)
+                cg = c+LDT_ews_halo_ind(n,LDT_localPet+1)-1
+                rg = r+LDT_nss_halo_ind(n,LDT_localPet+1)-1
+                ! Determine number of grid points, based on landmask/cover points present:
+                if(LDT_routing(n)%dommask(c,r).gt.0.and.&
+                     LDT_routing(n)%nextx(cg,rg).ne.LDT_rc%udef) then      
+                   LDT_rc%ngrid(n) = LDT_rc%ngrid(n)+1     
+                endif
+             enddo
+          enddo
+
+          allocate(LDT_domain(n)%grid(LDT_rc%ngrid(n)))
+          allocate(LDT_domain(n)%gindex(LDT_rc%lnc(n), LDT_rc%lnr(n)))
+
+          LDT_domain(n)%gindex = -1
+
+          kk = 1
+          k  = 1
+          do r=1,LDT_rc%lnr(n)
+             do c=1,LDT_rc%lnc(n)
+                cg = c+LDT_ews_halo_ind(n,LDT_localPet+1)-1
+                rg = r+LDT_nss_halo_ind(n,LDT_localPet+1)-1
+                if(LDT_routing(n)%dommask(c,r).gt.0.and.&
+                     LDT_routing(n)%nextx(cg,rg).ne.LDT_rc%udef) then      
+                   
+                   LDT_domain(n)%grid(kk)%lat = &
+                        LDT_domain(n)%lat(c+(r-1)*LDT_rc%lnc(n))
+                   LDT_domain(n)%grid(kk)%lon = &
+                        LDT_domain(n)%lon(c+(r-1)*LDT_rc%lnc(n))
+                   
+                   LDT_domain(n)%grid(kk)%col = c
+                   LDT_domain(n)%grid(kk)%row = r
+                   
+!                   do m=1,LDT_rc%nensem(n)
+!                      LDT_domain(n)%tile(k)%ensem = m
+!                      LDT_domain(n)%tile(k)%row = r
+!                      LDT_domain(n)%tile(k)%col = c
+!                      LDT_domain(n)%tile(k)%index = kk
+!                      k = k + 1
+!                   enddo
+                   LDT_domain(n)%gindex(c,r) = kk
+                   kk = kk + 1
+                endif
+             enddo
+          enddo
+
+          write(LDT_logunit,*) "Total number of grid points:",LDT_rc%ngrid(n)
+
+! Assuming serial mode only 
+          LDT_rc%glbngrid(n) = LDT_rc%ngrid(n)           
+          
+       enddo
+    endif
 
 end subroutine LDT_domainInit
 

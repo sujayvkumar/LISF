@@ -61,6 +61,18 @@ subroutine LDT_readConfig(configfile)
        label="LDT running mode:",rc=rc)
   call LDT_verify(rc,'LDT running mode: option not specified in the config file')
 
+  LDT_rc%DAmodelClass = "LSM"
+
+  if(LDT_rc%runmode.eq."DA preprocessing") then 
+     call ESMF_ConfigGetAttribute(LDT_config, LDT_rc%DAmodelClass,&
+          label="DA model class:",rc=rc)
+     if(rc.ne.0) then
+        write(LDT_logunit,*)"[ERR] DA model class: is not defined"
+        write(LDT_logunit,*)"[ERR] The supported options are.."
+        write(LDT_logunit,*)"[ERR] 'LSM' or 'Routing'"
+        call LDT_endrun()
+     endif
+  endif
 ! Read in and Set LDT run-time log-diagnostic filename path:
   call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%diagfile,&
        label="LDT diagnostic file:",rc=rc)

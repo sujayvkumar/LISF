@@ -167,7 +167,9 @@ contains
     use IMERG_dataMod,          only : IMERG_datainit
     use UASNOW_obsMod,          only : UASNOW_obsinit
     use OzFlux_obsMod,          only : OzFlux_obsinit
-    
+    use AmazonSF_obsMod,        only : AmazonSF_obsinit
+    use HydrowebWL_obsMod,      only : Hydrowebwl_obsinit
+
     external readtemplateObs
     external readLISoutput
     external readLIS6output
@@ -270,6 +272,8 @@ contains
     external readIMERGdata
     external readUASNOWObs
     external readOzFluxObs
+    external readAmazonSFObs
+    external readHydrowebWLobs
 
     call registerobsread(trim(LVT_LVTbenchmarkobsId)//char(0),&
          readLVTbenchmarkOUTobs)
@@ -682,6 +686,15 @@ contains
 
     call registerobssetup(trim(LVT_OzFluxdataId)//char(0), OzFlux_obsinit)
     call registerobsread(trim(LVT_OzFluxdataId)//char(0) , readOzFluxObs)
+
+    call registerobssetup(trim(LVT_AmazonSFdataId)//char(0), AmazonSF_obsinit)
+    call registerobsread(trim(LVT_AmazonSFdataId)//char(0) , readAmazonSFObs)
+
+    call registerobssetup(trim(LVT_hydrowebWLdataId)//char(0), &
+         Hydrowebwl_obsinit)
+    call registerobsread(trim(LVT_hydrowebWLdataId)//char(0) , &
+         readhydrowebWLobs)
+
 
   end subroutine LVT_datastream_plugin
 end module LVT_datastream_pluginMod

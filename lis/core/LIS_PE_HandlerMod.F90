@@ -14,7 +14,7 @@ module LIS_PE_HandlerMod
 ! !DESCRIPTION:
 !  The code in this file implements methods to handle the program flow related
 !  to parameter estimation (PE). The module supports parameter estimation
-!  of different model types (LSMs, RTMs, Routing, Landslide models) using
+!  of different model types (LSMs, RTMs, Routing models) using
 !  any of the optimization and uncertainty estimation algorithms in LIS.
 !   
 ! !REVISION HISTORY:
@@ -50,21 +50,27 @@ module LIS_PE_HandlerMod
   public :: LIS_PEOBS_State     !object to store observations for PE
   public :: LIS_PEOBSPred_State !object to store the model simulated values
                                 !that correspond to the PE observations
+  public :: LIS_lsm_opt_enabled
+  public :: LIS_routing_opt_enabled
+  public :: LIS_rtm_opt_enabled
+  
+  public :: LIS_lsm_obspred_enabled
+  public :: LIS_routing_obspred_enabled
+  public :: LIS_rtm_obspred_enabled
+
 !EOP
   type(ESMF_State), save :: LIS_PEOBS_State
   type(ESMF_State), save :: LIS_PEOBSPred_State
 
   integer :: nmodel_opts
-  logical :: lsm_opt_enabled
-  logical :: rtm_opt_enabled
-  logical :: landslide_opt_enabled
-  logical :: routing_opt_enabled
+  logical :: LIS_lsm_opt_enabled
+  logical :: LIS_rtm_opt_enabled
+  logical :: LIS_routing_opt_enabled
 
   integer :: nmodel_obspreds
-  logical :: lsm_obspred_enabled
-  logical :: rtm_obspred_enabled
-  logical :: landslide_obspred_enabled
-  logical :: routing_obspred_enabled
+  logical :: LIS_lsm_obspred_enabled
+  logical :: LIS_routing_obspred_enabled
+  logical :: LIS_rtm_obspred_enabled
   
   real*8  :: stime        ! time to begin writing output
   integer :: syear        ! year to begin writing output
@@ -107,20 +113,24 @@ contains
 !  \end{description}
 !
 ! !USES:     
-    use LIS_coreMod, only : LIS_rc, LIS_config
-    use LIS_logMod,  only : LIS_logunit, LIS_verify
-    use LIS_timeMgrMod, only : LIS_date2time
+    use LIS_coreMod
+    use LIS_logMod
+    use LIS_timeMgrMod
+    use LIS_optUEMod
 !EOP
-    integer       :: n 
-    integer       :: status
-    character*1   :: nestid(2)
-    character*1   :: caseid(3)
-    character*100 :: temp
-    integer              :: max_index
-    integer              :: i, k
-    integer,    allocatable  :: insts(:)
-    character*100        :: type1
-    integer :: rc
+    integer                     :: n 
+    type(ESMF_Field)            :: varField
+    type(ESMF_ArraySpec)        :: arrspec1
+    integer, pointer            :: mod_flag(:)
+    integer                     :: status
+    character*1                 :: nestid(2)
+    character*1                 :: caseid(3)
+    character*100               :: temp
+    integer                     :: max_index
+    integer                     :: i, k
+    integer,    allocatable     :: insts(:)
+    character*100               :: type1
+    integer                     :: rc
 
     call ESMF_ConfigGetAttribute(LIS_config,nmodel_opts,&
          label="Number of model types subject to parameter estimation:",rc=status)
@@ -135,13 +145,11 @@ contains
     do i=1,nmodel_opts
        call ESMF_ConfigGetAttribute(LIS_config,type1, rc=status)
        if(trim(type1).eq."LSM") then 
-          lsm_opt_enabled =.true. 
+          LIS_lsm_opt_enabled =.true. 
        elseif(trim(type1).eq."RTM") then 
-          rtm_opt_enabled = .true.
+          LIS_rtm_opt_enabled = .true.
        elseif(trim(type1).eq."Routing") then 
-          routing_opt_enabled = .true.
-       elseif(trim(type1).eq."Landslide") then 
-          landslide_opt_enabled = .true. 
+          LIS_routing_opt_enabled = .true.
        endif
        
        call ESMF_ConfigGetAttribute(LIS_config,nmodel_obspreds,&
@@ -158,15 +166,41 @@ contains
     do i=1,nmodel_obspreds
        call ESMF_ConfigGetAttribute(LIS_config,type1, rc=status)
        if(trim(type1).eq."LSM") then 
-          lsm_obspred_enabled =.true. 
+          LIS_lsm_obspred_enabled =.true. 
        elseif(trim(type1).eq."RTM") then 
-          rtm_obspred_enabled = .true.
+          LIS_rtm_obspred_enabled = .true.
        elseif(trim(type1).eq."Routing") then 
-          routing_obspred_enabled = .true.
-       elseif(trim(type1).eq."Landslide") then 
-          landslide_obspred_enabled = .true. 
+          LIS_routing_obspred_enabled = .true.
        endif
     enddo
+
+    n = 1
+
+    LIS_FeasibleSpace = ESMF_StateCreate(name="Feasible Space",rc=status)
+    call LIS_verify(status)
+
+    call ESMF_ArraySpecSet(arrspec1, rank=1,typekind = ESMF_TYPEKIND_I4,&
+         rc=status)
+    call LIS_verify(status)
+
+    if(LIS_lsm_opt_enabled) then 
+       varField = ESMF_FieldCreate(arrayspec=arrspec1,&
+            grid=LIS_vecTile(n),&
+            name = "Feasibility Flag",rc=status)
+       call LIS_verify(status)
+    elseif(LIS_routing_opt_enabled) then 
+       varField = ESMF_FieldCreate(arrayspec=arrspec1,&
+            grid=LIS_vecRoutingTile(n),&
+            name = "Feasibility Flag",rc=status)
+       call LIS_verify(status)
+    endif
+
+    call ESMF_StateAdd(LIS_feasibleSpace, (/varField/),rc=status)
+    call LIS_verify(status)
+!initialize the feasibility flag
+    call ESMF_FieldGet(varField,localDE=0,farrayPtr=mod_flag,rc=status)
+    call LIS_verify(status)
+    mod_flag = 0
 
 ! initmode = 1 means initialize with random values, 
 ! initmode = 0 means initialize with default values only. 
@@ -221,7 +255,7 @@ contains
     call setupPEOBSPredSpace()
 
     call setupDecSpaceVars()
-
+       
   end subroutine LIS_PE_init
 
 !BOP
@@ -250,11 +284,16 @@ contains
 !EOP    
     implicit none
 
-    if(lsm_obspred_enabled) then
+    if(LIS_lsm_obspred_enabled) then
        call lsmpesetupobspredspace(trim(LIS_rc%lsm)//"+"//trim(LIS_rc%optueset)//char(0), &
             LIS_PEOBSPred_State)
     endif
-    if(rtm_obspred_enabled) then
+    if(LIS_routing_obspred_enabled) then
+       call routingpesetupobspredspace(trim(LIS_rc%routingmodel)//"+"//&
+            trim(LIS_rc%optueset)//char(0), &
+            LIS_PEOBSPred_State)
+    endif
+    if(LIS_rtm_obspred_enabled) then
        call rtmpesetupobspredspace(trim(LIS_rc%rtm)//"+"//trim(LIS_rc%optueset)//char(0), &
             LIS_PEOBSPred_State)
     endif
@@ -283,11 +322,15 @@ contains
 !    sets up the LSM's decision space object
 !  \end{description}
 !EOP    
-    if(lsm_opt_enabled) then 
+    if(LIS_lsm_opt_enabled) then 
        call lsmpesetupdecisionspace(trim(LIS_rc%lsm)//char(0), &
             LIS_DecisionSpace, LIS_feasibleSpace)
     endif
-    if(rtm_opt_enabled) then 
+    if(LIS_routing_opt_enabled) then
+       call routingpesetupdecisionspace(trim(LIS_rc%routingmodel)//char(0), &
+            LIS_DecisionSpace, LIS_feasibleSpace)
+    endif
+    if(LIS_rtm_opt_enabled) then 
        call rtmpesetupdecisionspace(trim(LIS_rc%rtm)//char(0), &
             LIS_DecisionSpace, LIS_feasibleSpace)
     endif
@@ -395,12 +438,18 @@ contains
 !   invokes the method to retrieve obsPred object from the RTM. 
 !  \end{description}
 !EOP    
-       if(lsm_obspred_enabled) & 
-            call lsmpegetobspred(trim(LIS_rc%lsm)//"+"//trim(LIS_rc%optueset)//char(0), &
-            LIS_PEOBSPred_State)       
-       if(rtm_obspred_enabled) & 
-            call rtmpegetobspred(trim(LIS_rc%rtm)//"+"//trim(LIS_rc%optueset)//char(0), &
-            LIS_PEOBSPred_State)       
+    if(LIS_lsm_obspred_enabled) & 
+         call lsmpegetobspred(trim(LIS_rc%lsm)//"+"//&
+         trim(LIS_rc%optueset)//char(0), &
+         LIS_PEOBSPred_State)
+    if(LIS_routing_opt_enabled) &
+         call routingpegetobspred(trim(LIS_rc%routingmodel)//"+"//&
+         trim(LIS_rc%optueset)//char(0), &
+         LIS_PEOBSPred_State)            
+    if(LIS_rtm_obspred_enabled) & 
+         call rtmpegetobspred(trim(LIS_rc%rtm)//"+"//&
+         trim(LIS_rc%optueset)//char(0), &
+         LIS_PEOBSPred_State)       
     
   end subroutine getPEOBSPred
      
@@ -496,11 +545,15 @@ contains
 
     integer               :: status
 
-    if(lsm_opt_enabled) then 
+    if(LIS_lsm_opt_enabled) then 
        call lsmpesetdecisionspace(trim(LIS_rc%lsm)//char(0),  &
             LIS_decisionSpace, LIS_feasibleSpace)
     endif
-    if(rtm_opt_enabled) then 
+    if(LIS_routing_opt_enabled) then 
+       call routingpesetdecisionspace(trim(LIS_rc%routingmodel)//char(0),  &
+            LIS_decisionSpace, LIS_feasibleSpace)
+    endif
+    if(LIS_rtm_opt_enabled) then 
        call rtmpesetdecisionspace(trim(LIS_rc%rtm)//char(0),  &
             LIS_decisionSpace, LIS_feasibleSpace)
     endif

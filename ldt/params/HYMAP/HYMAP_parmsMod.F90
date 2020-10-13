@@ -545,6 +545,7 @@ contains
             n,HYMAP_struc(n)%hymap_mask%value(:,:,1))
        write(LDT_logunit,*) 'Done reading '//trim(HYMAP_struc(n)%basinmaskfile)
        
+
        if (HYMAP_struc(n)%rivflocode.eq.0) then
           call LDT_gridOptChecks( n, "HYMAP river flow type map", &
                HYMAP_struc(n)%hymap_gridtransform, hymap_proj, &
@@ -605,6 +606,9 @@ contains
        HYMAP_struc(n)%hymap_flow_dir_y%value(:,:,1) = real(nexty(:,:))
        
        LDT_rc%routing_grid_count=count(nextx/=-9999.and.mask>0)
+
+       LDT_routing(n)%dommask = HYMAP_struc(n)%hymap_mask%value(:,:,1)
+       LDT_routing(n)%nextx = HYMAP_struc(n)%hymap_flow_dir_x%value(:,:,1)
 
        deallocate(nextx)
        deallocate(nexty)
@@ -784,7 +788,6 @@ contains
        i2nexty=ibound
     endwhere
          
-    print*, ''
   end subroutine adjust_nextxy
 
 !BOP

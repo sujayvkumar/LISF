@@ -40,7 +40,7 @@ module LIS_routingMod
   public :: LIS_routing_run           ! execute the routing model 
   public :: LIS_routing_writeoutput   ! write the output file
   public :: LIS_routing_writerestart   ! write the restart file
-
+  public :: LIS_routing_reset
   public :: LIS_routing_perturb_states
   public :: LIS_routing_DAGetObsPred
   public :: LIS_routing_DAGetStateVar
@@ -1293,4 +1293,28 @@ module LIS_routingMod
     endif
   end subroutine LIS_routing_DAgetStateSpaceSize
 
+!BOP
+! !ROUTINE: LIS_routing_reset
+! \label{LIS_routing_reset}
+!
+! !INTERFACE:
+  subroutine LIS_routing_reset()
+! !USES:
+
+!
+! !DESCRIPTION:
+!  This routine issues the invocation to deallocate and cleanup
+!  any allocated data structures in the specific instance of a 
+!  land surface model 
+!
+! The calling sequence is: 
+! \begin{description}
+!  \item[routingreset] (\ref{routingreset}) \newline
+!    invokes the generic method in the registry to cleanup the 
+!    ROUTING related datastructures    
+! \end{description}
+!EOP
+    call routingreset(trim(LIS_rc%routingmodel)//char(0))
+
+  end subroutine LIS_routing_reset
 end module LIS_routingMod

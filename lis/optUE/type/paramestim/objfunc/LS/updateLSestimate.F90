@@ -19,12 +19,11 @@ subroutine updateLSestimate()
 ! !USES: 
   use ESMF
   use LIS_mpiMod
-  use LIS_coreMod,         only : LIS_rc, LIS_masterproc, &
-       LIS_localPet, LIS_npes, LIS_domain
-  use LIS_optUEMod,        only : LIS_ObjectiveFunc
-  use LIS_logMod,          only : LIS_verify
-  use LSObjFunc_Mod,       only : ls_ctl 
-  use LIS_PE_HandlerMod,   only : LIS_PEOBS_State, LIS_PEOBSPred_State
+  use LIS_coreMod
+  use LIS_optUEMod
+  use LIS_logMod
+  use LSObjFunc_Mod
+  use LIS_PE_HandlerMod
 
 ! 
 ! !DESCRIPTION:
@@ -46,7 +45,7 @@ subroutine updateLSestimate()
   real, pointer                  :: numobs(:),nummodelv(:)
   integer                        :: deltas(LIS_npes), offsets(LIS_npes)
   integer                        :: t, m, l,index1, tindex
-  integer                        :: n, k,nobjs
+  integer                        :: n, k, kk,nobjs
   real                           :: wt
   integer                        :: ierr,status
 
@@ -96,51 +95,105 @@ subroutine updateLSestimate()
      call LIS_verify(status)
      call ESMF_FieldGet(peobspredField, localDE=0, farrayPtr=obspred, rc=status)
      call LIS_verify(status)
-  
-     if(ls_ctl%LSobjfunc_mode.eq.1) then 
-        do t=1,LIS_rc%ntiles(n)
-           index1 = LIS_domain(n)%tile(t)%index
-           if(peobs(index1).ne.LIS_rc%udef) then               
-              sqerr(t) = sqerr(t) + ls_ctl%w(k)*(peobs(index1) - obspred(t))**2
-              numobs(t) = numobs(t) + 1
-           endif
-        enddo
-        !for landslides, create two observations, true alarm and false alarm, and assign
-        !weights of 10 and 1, respectively,
-        !but as std deviation 1/(10^.5) for true alarm and 1 for false alarm
-        !may want to go back to weights ???
-     elseif(ls_ctl%LSobjfunc_mode.eq.2) then   
-        do t=1,LIS_rc%ntiles(n)
-           index1 = LIS_domain(n)%tile(t)%index
-           if(peobs(index1).ne.LIS_rc%udef) then 
-              if(peobs(index1).eq.1) then 
-                 sqerr(t) = sqerr(t) + 10*(peobs(index1) - obspred(t))**2
+     
+     if(LIS_lsm_opt_enabled) then 
+        if(ls_ctl%LSobjfunc_mode.eq.1) then 
+           do t=1,LIS_rc%ntiles(n)
+              index1 = LIS_domain(n)%tile(t)%index
+              if(peobs(index1).ne.LIS_rc%udef) then               
+                 sqerr(t) = sqerr(t) + ls_ctl%w(k)*(peobs(index1) - obspred(t))**2
                  numobs(t) = numobs(t) + 1
-              else !false alarm
-                 if(obspred(t).ne.peobs(index1)) then 
-                    sqerr(t) = sqerr(t) + (peobs(index1) - obspred(t))**2 
+              endif
+           enddo
+        elseif(ls_ctl%LSobjfunc_mode.eq.2) then   
+           do t=1,LIS_rc%ntiles(n)
+              index1 = LIS_domain(n)%tile(t)%index
+              if(peobs(index1).ne.LIS_rc%udef) then 
+                 if(peobs(index1).eq.1) then 
+                    sqerr(t) = sqerr(t) + 10*(peobs(index1) - obspred(t))**2
                     numobs(t) = numobs(t) + 1
+                 else !false alarm
+                    if(obspred(t).ne.peobs(index1)) then 
+                       sqerr(t) = sqerr(t) + (peobs(index1) - obspred(t))**2 
+                       numobs(t) = numobs(t) + 1
+                    endif
                  endif
               endif
-           endif
-        enddo
-     elseif(ls_ctl%LSobjfunc_mode.eq.3) then 
-! keep computing climatologies. 
-        do t=1,LIS_rc%ntiles(n)
-           index1 = LIS_domain(n)%tile(t)%index
+           enddo
+        elseif(ls_ctl%LSobjfunc_mode.eq.3) then 
+           ! keep computing climatologies. 
+           do t=1,LIS_rc%ntiles(n)
+              index1 = LIS_domain(n)%tile(t)%index
+              
+              if(peobs(index1).ne.LIS_rc%udef) then 
+                 sqerr(t) = sqerr(t) + peobs(index1)
+                 numobs(t) = numobs(t) + 1
+              endif
+              
+              modelv(t) = modelv(t) + obspred(t)
+              nummodelv(t) = nummodelv(t) + 1
+           enddo
+        endif
+     elseif(LIS_routing_opt_enabled) then 
+        if(ls_ctl%LSobjfunc_mode.eq.1) then 
+           do t=1,LIS_rc%nroutinggrid(n)
+              do m=1,LIS_rc%nensem(n)
+                 kk=(t-1)*LIS_rc%nensem(n)+m
+                 
+                 index1 = LIS_routing(n)%tile(t)%index
+                 
+                 if(peobs(index1).ne.LIS_rc%udef) then               
+                    sqerr(kk) = sqerr(kk) + &
+                         ls_ctl%w(k)*(peobs(index1) - obspred(kk))**2
+                    numobs(kk) = numobs(kk) + 1
+                 endif
+              enddo
+           enddo
+        elseif(ls_ctl%LSobjfunc_mode.eq.2) then   
+           do t=1,LIS_rc%nroutinggrid(n)
+              do m=1,LIS_rc%nensem(n)
+                 kk=(t-1)*LIS_rc%nensem(n)+m
 
-           if(peobs(index1).ne.LIS_rc%udef) then 
-              sqerr(t) = sqerr(t) + peobs(index1)
-              numobs(t) = numobs(t) + 1
-           endif
-           
-           modelv(t) = modelv(t) + obspred(t)
-           nummodelv(t) = nummodelv(t) + 1
-        enddo
+                 index1 = LIS_routing(n)%tile(t)%index
+
+                 if(peobs(index1).ne.LIS_rc%udef) then 
+                    if(peobs(index1).eq.1) then 
+                       sqerr(kk) = sqerr(kk) + &
+                            10*(peobs(index1) - obspred(kk))**2
+                       numobs(kk) = numobs(kk) + 1
+                    else !false alarm
+                       if(obspred(kk).ne.peobs(index1)) then 
+                          sqerr(kk) = sqerr(kk) + &
+                               (peobs(index1) - obspred(kk))**2 
+                          numobs(kk) = numobs(kk) + 1
+                       endif
+                    endif
+                 endif
+              enddo
+           enddo
+        elseif(ls_ctl%LSobjfunc_mode.eq.3) then 
+           ! keep computing climatologies. 
+           do t=1,LIS_rc%nroutinggrid(n)
+              do m=1,LIS_rc%nensem(n)
+                 kk=(t-1)*LIS_rc%nensem(n)+m
+
+                 index1 = LIS_routing(n)%tile(t)%index              
+
+                 if(peobs(index1).ne.LIS_rc%udef) then 
+                    sqerr(kk) = sqerr(kk) + peobs(index1)
+                    numobs(kk) = numobs(kk) + 1
+                 endif
+                 
+                 modelv(kk) = modelv(kk) + obspred(kk)
+                 nummodelv(kk) = nummodelv(kk) + 1
+              enddo
+           enddo
+        endif
      endif
-  enddo
+  end do
 
-!  deallocate(peobsname)
+end subroutine updateLSestimate
+     !  deallocate(peobsname)
 
 #if 0 
   elseif(ls_ctl%LSobjfunc_mode.eq.2) then  !domain averaged. 
@@ -235,7 +288,7 @@ subroutine updateLSestimate()
 !  deallocate(numobs_t1)
 !  deallocate(sqerr_t1_sum)
 !  deallocate(numobs_t1_sum)
- end subroutine updateLSestimate
+
 
 
 !old stuff

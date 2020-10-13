@@ -105,6 +105,10 @@ subroutine LIS_PEobs_plugin
    use UAsnow_obsMod,     only : UAsnow_obs_setup
 #endif
 
+#if ( defined PE_OBS_AMAZONSF)
+   use AmazonSF_obsMod,     only : AmazonSF_obs_setup
+#endif
+
 #if ( defined PE_OBS_AMSRE_SR )
    use AMSRE_SR_em_obsMod,    only : AMSRE_SR_em_obs_setup
 #endif
@@ -176,6 +180,10 @@ subroutine LIS_PEobs_plugin
 
 #if ( defined PE_OBS_UASNOW )
    external read_UAsnowobs, write_UAsnowobs, reset_UAsnowobs
+#endif
+
+#if ( defined PE_OBS_AMAZONSF )
+   external read_AmazonSFobs, write_AmazonSFobs, reset_AmazonSFobs
 #endif
 
 #if ( defined PE_OBS_AMSRE_SR )
@@ -376,6 +384,17 @@ subroutine LIS_PEobs_plugin
                            write_UAsnowobs)
    call registerpeobsreset(trim(LIS_UAsnowobsId)//char(0), &
                            reset_UAsnowobs)
+#endif
+
+#if ( defined PE_OBS_AMAZONSF )
+   call registerpeobssetup(trim(LIS_AmazonSFobsId)//char(0), &
+                           AmazonSF_obs_setup)
+   call registergetpeobs(trim(LIS_AmazonSFobsId)//char(0), &
+                         read_AmazonSFobs)
+   call registerwritepeobs(trim(LIS_AmazonSFobsId)//char(0), &
+                           write_AmazonSFobs)
+   call registerpeobsreset(trim(LIS_AmazonSFobsId)//char(0), &
+                           reset_AmazonSFobs)
 #endif
 
 #endif

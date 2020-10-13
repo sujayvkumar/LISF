@@ -341,6 +341,7 @@ module LDT_PRIV_rcMod
      character*40           :: maskdir
 
 ! -- DA Preprocessing Inputs:
+     character*50           :: DAmodelClass
      character*50           :: obs_src
      integer                :: comp_cdf
      integer                :: comp_obsGrid

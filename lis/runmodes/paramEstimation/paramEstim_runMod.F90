@@ -104,25 +104,21 @@ contains
 ! !INTERFACE:
   subroutine lis_run_paramEstim
 ! !USES:
-    use LIS_coreMod,  only : LIS_rc, LIS_endofrun, LIS_timetoRunNest, &
-         LIS_ticktime, LIS_core_init
-    use LIS_surfaceModelMod, only : LIS_surfaceModel_readrestart, LIS_surfaceModel_init, &
-         LIS_surfaceModel_setup, LIS_surfaceModel_finalize, LIS_surfaceModel_reset
-    use LIS_metforcingMod,  only :  LIS_metforcing_init, LIS_metforcing_reset, LIS_metforcing_finalize 
-    use LIS_perturbMod,     only : LIS_perturb_init, LIS_perturb_readrestart
-    use LIS_DAobservationsMod, only : LIS_initDAObservations
-    use LIS_dataAssimMod,   only : LIS_dataassim_init
-    use LIS_routingMod,     only : LIS_routing_init, LIS_routing_readrestart
-    use LIS_RTMMod,          only : LIS_RTM_init
-    use LIS_appMod,          only : LIS_appModel_init
-    use LIS_paramsMod,       only : LIS_param_reset, LIS_param_init, LIS_param_finalize
-    use LIS_timeMgrMod,      only : LIS_resetClock, LIS_timemgr_init
-    use LIS_logMod,          only : LIS_flush, LIS_logunit
+    use LIS_coreMod
+    use LIS_surfaceModelMod
+    use LIS_metforcingMod
+    use LIS_perturbMod
+    use LIS_DAobservationsMod
+    use LIS_dataAssimMod
+    use LIS_routingMod
+    use LIS_RTMMod
+    use LIS_appMod
+    use LIS_paramsMod
+    use LIS_timeMgrMod
+    use LIS_logMod
     use LIS_optUEMod
-    use LIS_PE_HandlerMod,   only : LIS_readPEobs, LIS_computePEobjectiveFunc,&
-         LIS_resetPEObjectiveFunc, LIS_resetPEobs,LIS_updatePEObjectiveFunc,&
-         LIS_setPEDecisionSpace
-    use LIS_logMod,          only : LIS_logunit, LIS_flush
+    use LIS_PE_HandlerMod
+    use LIS_logMod
 !
 ! !DESCRIPTION:
 ! 

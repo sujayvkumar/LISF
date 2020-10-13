@@ -49,7 +49,7 @@ contains
 ! !USES: 
     use ESMF
     use map_utils
-    use LDT_coreMod,       only : LDT_rc, LDT_domain
+    use LDT_coreMod
     use LDT_timeMgrMod,    only : LDT_clock, LDT_calendar, LDT_seconds2time
 
     implicit none
@@ -90,6 +90,8 @@ contains
          LDT_DAobsData(n)%vod_obs,LDT_DAmetrics%vod)
     call registerMetricsEntry(LDT_DA_MOC_LAI,nsize,&
          LDT_DAobsData(n)%lai_obs,LDT_DAmetrics%lai)
+    call registerMetricsEntry(LDT_DA_MOC_WL,nsize,&
+         LDT_DAobsData(n)%wl_obs,LDT_DAmetrics%wl)
 !------------------------------------------------------------------------
 ! the generation of the obsgrid only doesn't require a pass through the
 ! data
@@ -459,10 +461,17 @@ contains
     enddo
 
 #if (defined USE_NETCDF3 || defined USE_NETCDF4)        
-    call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
-         lmaskid, LDT_LSMparam_struc(n)%landmask%value(:,:,1),&
-         (/1,1/),(/LDT_rc%gnc(n),LDT_rc%gnr(n)/)),&
-         'nf90_put_att failed for LANDMASK')
+    if(LDT_rc%DAmodelClass.eq."LSM") then 
+       call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
+            lmaskid, LDT_LSMparam_struc(n)%landmask%value(:,:,1),&
+            (/1,1/),(/LDT_rc%gnc(n),LDT_rc%gnr(n)/)),&
+            'nf90_put_var failed for LANDMASK')
+    elseif(LDT_rc%DAmodelClass.eq."Routing") then 
+       call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
+            lmaskid, LDT_routing(n)%dommask,&
+            (/1,1/),(/LDT_rc%gnc(n),LDT_rc%gnr(n)/)),&
+            'nf90_put_var failed for LANDMASK')
+    endif
 
     call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
          xlatid, xlat,&
@@ -1170,10 +1179,17 @@ contains
     enddo
 
 #if (defined USE_NETCDF3 || defined USE_NETCDF4)        
-    call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
-         lmaskid, LDT_LSMparam_struc(n)%landmask%value(:,:,1),&
-         (/1,1/),(/LDT_rc%gnc(n),LDT_rc%gnr(n)/)),&
-         'nf90_put_att failed for LANDMASK')
+    if(LDT_rc%DAmodelClass.eq."LSM") then 
+       call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
+            lmaskid, LDT_LSMparam_struc(n)%landmask%value(:,:,1),&
+            (/1,1/),(/LDT_rc%gnc(n),LDT_rc%gnr(n)/)),&
+            'nf90_put_att failed for LANDMASK')
+    elseif(LDT_rc%DAmodelClass.eq."Routing") then 
+       call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
+            lmaskid, LDT_routing(n)%dommask,&
+            (/1,1/),(/LDT_rc%gnc(n),LDT_rc%gnr(n)/)),&
+            'nf90_put_att failed for LANDMASK')
+    endif
 
     call LDT_verify(nf90_put_var(LDT_rc%ftn_DAobs_domain,&
          xlatid, xlat,&

@@ -387,6 +387,21 @@ contains
                   obs_param,obs_da,Obs_cov)
           endif
           if(assim.and.obspred_flag) then   
+!                print*, 'gid',gid
+!                print*, 'mo da hr', LIS_rc%mo, LIS_rc%da, LIS_rc%hr
+!                print*, 'ran ', ((i-1)*N_ens+1),((i-1)*N_ens+N_ens)
+!             print*,  Observations(st_id)%lat, &
+!                  Observations(st_id)%lon
+!                print*, 'pet ',LIS_localPet, i, tileid, &
+!                     Observations(st_id)%lat, &
+!                     Observations(st_id)%lon, state_lat(1), state_lon(1)
+!                print*, 'obs ',obs_da(1)%value
+!                print*, 'obspred ',obspred_da(1,:)
+!                print*, 'obspert ',obspert_da(1,1)
+!                print*, 'obscov ',obs_cov
+!                print*, 'stincr bf',&
+!                     ((i-1)*N_ens+1),((i-1)*N_ens+N_ens),&
+!                     sum(state_incr(1, ((i-1)*N_ens+1):((i-1)*N_ens+N_ens)))/N_ens
 
              call enkf_analysis(gid,N_state,N_selected_obs, N_ens, &
                   obs_da,                                        & 
@@ -404,6 +419,15 @@ contains
 !                  state_incr(:, ((i-1)*N_ens+1):((i-1)*N_ens+N_ens)),&
 !                  state_lon, state_lat,xcompact,ycompact)
              
+             state_tmp(:,(i-1)*N_ens+1:(i-1)*N_ens+N_ens) = &
+                     state_incr(:,(i-1)*N_ens+1:(i-1)*N_ens+N_ens)
+             state_tmp(:,(i-1)*N_ens+1:(i-1)*N_ens+N_ens) = &
+                  state_tmp(:,(i-1)*N_ens+1:(i-1)*N_ens+N_ens) + &
+                  state_incr(:,(i-1)*N_ens+1:(i-1)*N_ens+N_ens)
+!             print*, 'stincr af',((i-1)*N_ens+1),((i-1)*N_ens+N_ens),&
+!                  sum(state_tmp(1, ((i-1)*N_ens+1):((i-1)*N_ens+N_ens)))/N_ens
+!             print*, ''
+
           else
              state_incr(:,(i-1)*N_ens+1:(i-1)*N_ens+N_ens) = 0.0            
           endif

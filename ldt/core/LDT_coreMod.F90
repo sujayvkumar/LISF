@@ -146,6 +146,7 @@ module LDT_coreMod
   public :: LDT_vecPatch
   public :: LDT_vecGrid   
   public :: LDT_ensOnGrid 
+  public :: LDT_routing
 !EOP
 
   type, public :: ldt_domain_type 
@@ -171,6 +172,17 @@ module LDT_coreMod
      integer,       allocatable :: npatch_pergrid(:)
      integer,       allocatable :: str_patch_ind(:)
   end type ldt_domain_sf_type
+
+  type, public :: routing_type_dec
+     real, allocatable :: dommask(:,:)
+     real, allocatable :: nextx(:,:)
+     integer, allocatable :: gindex(:,:)
+     type(tiledec), allocatable :: tile(:)
+     type(griddec), allocatable :: grid(:)
+     integer, allocatable       :: ntiles_pergrid(:)
+  end type routing_type_dec
+  
+  type(routing_type_dec), allocatable :: LDT_routing(:)
 
   type(ldtrcdec), save   :: LDT_rc
   type(ldt_domain_type), allocatable :: LDT_domain(:)
@@ -231,7 +243,7 @@ contains
 !EOP
     implicit none
     character(len=*) :: configfile
-
+    integer :: n
     integer :: status
 
     call spmd_init_offline(LDT_vm)
@@ -273,6 +285,15 @@ contains
 
     allocate(LDT_rc%glbnpatch(LDT_rc%nnest,LDT_rc%max_model_types))
     allocate(LDT_rc%glbnpatch_red(LDT_rc%nnest,LDT_rc%max_model_types))
+
+    if(LDT_rc%routingmodel.ne."none") then 
+       allocate(LDT_routing(LDT_rc%nnest))
+       
+       do n=1,LDT_rc%nnest
+          allocate(LDT_routing(n)%dommask(LDT_rc%lnc(n),LDT_rc%lnr(n)))
+          allocate(LDT_routing(n)%nextx(LDT_rc%gnc(n),LDT_rc%gnr(n)))
+       enddo
+    endif
 
     LDT_rc%gridDesc = 0 
 

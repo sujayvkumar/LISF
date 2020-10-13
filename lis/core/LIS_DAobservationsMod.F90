@@ -1057,6 +1057,7 @@ contains
                 endif
              enddo
           enddo
+
           deallocate(gmask)
 !-----------------------------------------------------------------------------
 !  The grid space sizes of the decomposed domains are gathered 

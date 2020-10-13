@@ -79,6 +79,7 @@ subroutine LIS_routing_plugin
    external HYMAP2_routing_run
    external HYMAP2_routing_output
    external HYMAP2_routing_writerst
+   external HYMAP2_routing_reset
 #endif
 
 #if ( defined ROUTE_NLDAS_ROUTER )
@@ -112,6 +113,7 @@ subroutine LIS_routing_plugin
                               HYMAP2_routing_output)
    call registerroutingwriterestart(trim(LIS_HYMAP2routerId)//char(0), &
                                     HYMAP2_routing_writerst)
+   call registerroutingreset(trim(LIS_HYMAP2routerId)//char(0),HYMAP2_routing_reset)
 #endif
 
 end subroutine LIS_routing_plugin
