@@ -665,7 +665,7 @@ contains
     call LIS_rescaleCount(n,group_temp)
 
     write(LIS_logunit,*)'[INFO] Writing routing model output to:  ', &
-         trim(routingoutfile) ! EMK
+         trim(routingoutfile) 
 
     if(LIS_rc%wout.eq."binary") then 
        write(LIS_logunit,*)'[ERR] binary routing model outputs are not supported'
@@ -2070,9 +2070,10 @@ contains
 
     if(LIS_masterproc) then 
        if(LIS_rc%wopt.eq."1d tilespace") then 
-          write(LIS_logunit,*) '[ERR] 1d tilespace output for routing models'
-          write(LIS_logunit,*) '[ERR] is not supported currently'
-          call LIS_endrun()
+          call LIS_verify(nf90_def_dim(ftn,'ntiles',&
+               LIS_rc%glbnroutinggrid(n)*LIS_rc%nensem(n),&
+               dimID(1)),&
+               'nf90_def_dim for ntiles failed in LIS_historyMod')
 
        elseif(LIS_rc%wopt.eq."2d gridspace") then 
           call LIS_verify(nf90_def_dim(ftn,'east_west',LIS_rc%gnc(n),&
@@ -6348,8 +6349,24 @@ contains
     integer :: count1 ,c,r,m,gid,ntiles,ierr,i,t
 
 #if (defined USE_NETCDF3 || defined USE_NETCDF4)
+    if(LIS_rc%wopt.eq."1d tilespace") then 
+       call LIS_gather_tiled_routing_vector_output(n,gtmp1,var)
 
-    if(LIS_rc%wopt.eq."2d gridspace") then 
+       if(LIS_masterproc) then
+
+          if(PRESENT(dim1)) then
+             call LIS_verify(nf90_put_var(ftn,varid,gtmp1,(/1,dim1/),&
+                  (/LIS_rc%glbnroutinggrid(n)*LIS_rc%nensem(n),1/)),&
+                  'nf90_put_var failed in LIS_historyMod')
+          else
+             call LIS_verify(nf90_put_var(ftn,varid,gtmp1,(/1/),&
+                  (/LIS_rc%glbnroutinggrid(n)*LIS_rc%nensem(n)/)),&
+                  'nf90_put_Var failed in LIS_historyMod')
+          endif
+          
+       endif
+       
+    elseif(LIS_rc%wopt.eq."2d gridspace") then 
        allocate(var1(LIS_rc%nroutinggrid(n)))
        if(LIS_masterproc) then 
           allocate(gtmp(LIS_rc%gnc(n),LIS_rc%gnr(n)))
@@ -8443,6 +8460,98 @@ subroutine LIS_gather_tiled_vector_output(n, gtmp, var)
     endif
     deallocate(gtmp1)
  end subroutine LIS_gather_tiled_vector_output
+
+ 
+!BOP
+!
+! !ROUTINE: LIS_gather_tiled_routing_vector_output
+! \label{LIS_gather_tiled_routing_vector_output}
+!
+! !REVISION HISTORY:
+!  30 Jan 2009:  Sujay Kumar; Initial code
+! 
+! !INTERFACE:
+subroutine LIS_gather_tiled_routing_vector_output(n, gtmp, var)
+! !USES: 
+
+
+! !ARGUMENTS: 
+
+   implicit none
+
+   integer                       :: n
+   real, allocatable             :: gtmp(:)
+   real, intent(in)              :: var(LIS_rc%nroutinggrid(n)*&
+        LIS_rc%nensem(n))
+
+! !DESCRIPTION:
+! This routine gathers the output data into a tiled 1d array.
+!
+! This process aggregates the variable into a tile space. 
+!
+! This process accounts for the halo.
+!
+! The arguments are:
+!  \begin{description}
+!   \item [n]
+!     index of the current nest
+!   \item [gtmp]
+!     return array for the tiled output data
+!   \item [var]
+!     output data to process
+!  \end{description}
+!EOP
+
+    real, allocatable :: gtmp1(:)
+    integer :: m,gid,lid,ix,iy,ix1,iy1,ntiles,t,i,l
+    integer :: tdeltas,toffsets(0:LIS_npes-1)
+    integer :: ierr
+    
+    if(LIS_masterproc) then 
+       allocate(gtmp(LIS_rc%glbnroutinggrid(n)*LIS_rc%nensem(n)))
+       allocate(gtmp1(LIS_rc%glbnroutinggrid(n)*LIS_rc%nensem(n)))
+    else
+       allocate(gtmp(1))
+       allocate(gtmp1(1))
+    endif
+#if (defined SPMD)      
+    tdeltas = LIS_routing_gdeltas(n,LIS_localPet)*LIS_rc%nensem(n)
+
+    toffsets = 0 
+    do l=1,LIS_npes-1
+       toffsets(l) = toffsets(l-1)+ &
+            LIS_routing_gdeltas(n,l)*LIS_rc%nensem(n)
+    enddo
+    
+    call MPI_GATHERV(var,tdeltas,&
+         MPI_REAL,gtmp1,LIS_routing_gdeltas(n,:)*LIS_rc%nensem(n),&
+         toffsets(:),MPI_REAL,0,LIS_mpi_comm,ierr)
+#else 
+    gtmp1 = var
+#endif
+
+    if(LIS_masterproc) then 
+       do l=1,LIS_npes
+          do i=1,LIS_routing_gdeltas(n,l-1)
+             ix = LIS_routing(n)%seqx_glb(i+&
+                  LIS_routing_goffsets(n,l-1))
+             iy = LIS_routing(n)%seqy_glb(i+&
+                  LIS_routing_goffsets(n,l-1))
+             ix1 = ix + LIS_ews_halo_ind(n,l) - 1
+             iy1 = iy + LIS_nss_halo_ind(n,l)-1
+
+             lid = i+LIS_routing_goffsets(n,l-1)
+             gid = LIS_routing(n)%sindex(ix1,iy1)
+             do m=1,LIS_rc%nensem(n)
+                gtmp(m+(gid-1)*LIS_rc%nensem(n)) = & 
+                     gtmp1(m+(lid-1)*LIS_rc%nensem(n))
+             enddo
+          enddo
+       enddo
+    endif
+    deallocate(gtmp1)
+    
+ end subroutine LIS_gather_tiled_routing_vector_output
 
 
 !BOP

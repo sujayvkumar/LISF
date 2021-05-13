@@ -65,8 +65,6 @@ module HYMAP2_routingMod
 ! === River sequence ====================================
   integer, allocatable :: seqx(:)       !1D sequence horizontal
   integer, allocatable :: seqy(:)       !1D sequence vertical
-  integer, allocatable :: seqx_glb(:)
-  integer, allocatable :: seqy_glb(:)
 
   integer              :: nseqall       !length of 1D sequnece for river and mouth  
 ! === Map ===============================================
@@ -711,8 +709,8 @@ contains
        allocate(HYMAP2_routing_struc(n)%seqx(HYMAP2_routing_struc(n)%nseqall))
        allocate(HYMAP2_routing_struc(n)%seqy(HYMAP2_routing_struc(n)%nseqall))
 
-       allocate(HYMAP2_routing_struc(n)%seqx_glb(LIS_rc%glbnroutinggrid(n)))
-       allocate(HYMAP2_routing_struc(n)%seqy_glb(LIS_rc%glbnroutinggrid(n)))
+       allocate(LIS_routing(n)%seqx_glb(LIS_rc%glbnroutinggrid(n)))
+       allocate(LIS_routing(n)%seqy_glb(LIS_rc%glbnroutinggrid(n)))
 
        allocate(HYMAP2_routing_struc(n)%sindex(LIS_rc%gnc(n),LIS_rc%gnr(n)))
        allocate(HYMAP2_routing_struc(n)%outlet(HYMAP2_routing_struc(n)%nseqall))
@@ -1038,19 +1036,6 @@ contains
             HYMAP2_routing_struc(n)%sindex,&
             HYMAP2_routing_struc(n)%outlet_glb,&
             HYMAP2_routing_struc(n)%next_glb)
-#if 0 
-       ic = 0 
-       do c=1,LIS_rc%gnc(n)
-          do r=1,LIS_rc%gnr(n)
-             if(HYMAP2_routing_struc(n)%nextx(c,r)/=HYMAP2_routing_struc(n)%imis.and.maskg(c,r)>0) then 
-                ic = ic + 1
-                print*, ic, & !c,r,HYMAP2_routing_struc(n)%sindex(c,r)
-                     -56.875 + (r-1)*0.25, -82.875 + (c-1)*0.25
-             endif
-          enddo
-       enddo
-       stop
-#endif
 
        call HYMAP2_get_seq(LIS_rc%lnc(n),LIS_rc%lnr(n),&
             LIS_rc%gnc(n),LIS_rc%gnr(n),&
@@ -1065,13 +1050,14 @@ contains
             HYMAP2_routing_struc(n)%seqx,&
             HYMAP2_routing_struc(n)%seqy,HYMAP2_routing_struc(n)%next)
 
+       LIS_routing(n)%sindex = HYMAP2_routing_struc(n)%sindex
     enddo
     
 #if (defined SPMD)
     do n=1,LIS_rc%nnest    
        call MPI_ALLGATHERV(HYMAP2_routing_struc(n)%seqx,&
             LIS_rc%nroutinggrid(n),MPI_INTEGER,&
-            HYMAP2_routing_struc(n)%seqx_glb,&
+            LIS_routing(n)%seqx_glb,&
             LIS_routing_gdeltas(n,:),&
             LIS_routing_goffsets(n,:),&
             MPI_INTEGER,&
@@ -1079,7 +1065,7 @@ contains
 
        call MPI_ALLGATHERV(HYMAP2_routing_struc(n)%seqy,&
             LIS_rc%nroutinggrid(n),MPI_INTEGER,&
-            HYMAP2_routing_struc(n)%seqy_glb,&
+            LIS_routing(n)%seqy_glb,&
             LIS_routing_gdeltas(n,:),&
             LIS_routing_goffsets(n,:),&
             MPI_INTEGER,&
@@ -2609,9 +2595,9 @@ subroutine HYMAP2_gather_tiles_int(n,var,var_glb)
   !rearrange them to be in correct order.
   do l=1,LIS_npes
      do i=1,LIS_routing_gdeltas(n,l-1)
-        ix = HYMAP2_routing_struc(n)%seqx_glb(i+&
+        ix = LIS_routing(n)%seqx_glb(i+&
              LIS_routing_goffsets(n,l-1))
-        iy = HYMAP2_routing_struc(n)%seqy_glb(i+&
+        iy = LIS_routing(n)%seqy_glb(i+&
              LIS_routing_goffsets(n,l-1))
         ix1 = ix + LIS_ews_halo_ind(n,l) - 1
         iy1 = iy + LIS_nss_halo_ind(n,l)-1

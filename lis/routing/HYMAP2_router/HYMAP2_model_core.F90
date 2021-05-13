@@ -613,9 +613,9 @@ subroutine HYMAP2_gather_tiles(n,var,var_glb)
   !rearrange them to be in correct order.
   do l=1,LIS_npes
      do i=1,LIS_routing_gdeltas(n,l-1)
-        ix = HYMAP2_routing_struc(n)%seqx_glb(i+&
+        ix = LIS_routing(n)%seqx_glb(i+&
              LIS_routing_goffsets(n,l-1))
-        iy = HYMAP2_routing_struc(n)%seqy_glb(i+&
+        iy = LIS_routing(n)%seqy_glb(i+&
              LIS_routing_goffsets(n,l-1))
         ix1 = ix + LIS_ews_halo_ind(n,l) - 1
         iy1 = iy + LIS_nss_halo_ind(n,l)-1

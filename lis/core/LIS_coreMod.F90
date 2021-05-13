@@ -161,12 +161,17 @@ module LIS_coreMod
   integer, allocatable  :: LIS_routing_gdeltas(:,:), LIS_routing_goffsets(:,:)
 
   type, public :: routing_type_dec
-     integer, allocatable :: dommask(:,:)
-     integer, allocatable :: nextx(:,:)
-     integer, allocatable :: gindex(:,:)
+
+     integer,       allocatable :: dommask(:,:)
+     integer,       allocatable :: nextx(:,:)
+     integer,       allocatable :: gindex(:,:)
+     integer,       allocatable :: seqx_glb(:)
+     integer,       allocatable :: seqy_glb(:)
+     integer,       allocatable :: sindex(:,:) 
      type(tiledec), allocatable :: tile(:)
      type(griddec), allocatable :: grid(:)
-     integer, allocatable       :: ntiles_pergrid(:)
+     integer,       allocatable :: ntiles_pergrid(:)
+     
   end type routing_type_dec
   
   type(routing_type_dec), allocatable :: LIS_routing(:)

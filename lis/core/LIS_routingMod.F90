@@ -112,6 +112,7 @@ module LIS_routingMod
           allocate(LIS_routing(n)%dommask(LIS_rc%lnc(n),LIS_rc%lnr(n)))
           allocate(LIS_routing(n)%nextx(LIS_rc%gnc(n),LIS_rc%gnr(n)))
           allocate(LIS_routing(n)%gindex(LIS_rc%lnc(n),LIS_rc%lnr(n)))
+          allocate(LIS_routing(n)%sindex(LIS_rc%gnc(n),LIS_rc%gnr(n)))
           allocate(LIS_routing(n)%ntiles_pergrid(LIS_rc%gnc(n)*LIS_rc%gnr(n)))
           allocate(ntiles_pergrid(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
        enddo
