@@ -3592,6 +3592,7 @@ contains
        do k=1,dataEntry%vlevels
           ! accumulated values
           ! time-averaged values and instantaneous values
+
           if(dataEntry%timeAvgOpt.eq.2) then 
              call writeroutingvar_netcdf_real(ftn,ftn_stats, n,&
                   dataEntry%modelOutput(1,:,k),&
@@ -6365,6 +6366,7 @@ contains
           endif
           
        endif
+       deallocate(gtmp1)
        
     elseif(LIS_rc%wopt.eq."2d gridspace") then 
        allocate(var1(LIS_rc%nroutinggrid(n)))
@@ -8520,7 +8522,7 @@ subroutine LIS_gather_tiled_routing_vector_output(n, gtmp, var)
     toffsets = 0 
     do l=1,LIS_npes-1
        toffsets(l) = toffsets(l-1)+ &
-            LIS_routing_gdeltas(n,l)*LIS_rc%nensem(n)
+            LIS_routing_gdeltas(n,l-1)*LIS_rc%nensem(n)
     enddo
     
     call MPI_GATHERV(var,tdeltas,&
