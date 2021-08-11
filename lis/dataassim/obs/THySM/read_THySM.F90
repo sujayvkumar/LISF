@@ -308,6 +308,15 @@ subroutine read_THySM(n, k, OBS_State, OBS_Pert_State)
           THySM_struc(n)%obs_xrange,    &
           THySM_struc(n)%obs_cdf,       &
           sm_current)
+  elseif(LIS_rc%dascaloption(k).eq."Anomaly scaling".and.fnd.ne.0) then
+      call LIS_rescale_with_anomaly(    &
+           n,                                   &
+           k,                                   &
+           THySM_struc(n)%nbins,         &
+           THySM_struc(n)%ntimes,        &
+           THySM_struc(n)%obs_mu,    &
+           THySM_struc(n)%model_mu,       &
+           sm_current)      
      
   endif
   
@@ -319,7 +328,7 @@ subroutine read_THySM(n, k, OBS_State, OBS_Pert_State)
         endif
      enddo
   enddo
-  write(100) sm_current
+
   !-------------------------------------------------------------------------
   !  Apply LSM based QC and screening of observations
   !-------------------------------------------------------------------------  
