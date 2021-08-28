@@ -84,6 +84,8 @@ contains
     character*100     :: source
     integer           :: rc
     integer           :: n
+    integer           :: k
+    logical           :: lsmCheck
     
     allocate(LDT_laisai_struc(LDT_rc%nnest))
     
@@ -99,14 +101,20 @@ contains
             "LAIMAX",source)
     enddo
 
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"CLM")  == 1 .or. &
-        index(LDT_rc%lsm,"CLSM") == 1 ) then
-      if( rc /= 0 ) then
-         call LDT_warning(rc,"WARNING: LAI data source: not defined")
-      endif
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"CLM")  == 1 .or. &
+            index(LDT_rc%lsm(k),"CLSM") == 1 ) then
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
+       if( rc /= 0 ) then
+          call LDT_warning(rc,"WARNING: LAI data source: not defined")
+       endif
     endif
-
+    
     call ESMF_ConfigFindLabel(LDT_config,"SAI data source:",rc=rc)
     do n=1,LDT_rc%nnest
        call ESMF_ConfigGetAttribute(LDT_config,source,rc=rc)
@@ -114,14 +122,19 @@ contains
             "SAI",source)
     enddo
 
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"CLM")  == 1 .or. &
-        index(LDT_rc%lsm,"CLSM") == 1 ) then
-      if( rc /= 0 ) then
-         call LDT_warning(rc,"WARNING: SAI data source: not defined")
-      endif
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"CLM")  == 1 .or. &
+            index(LDT_rc%lsm(k),"CLSM") == 1 ) then
+       endif
+    enddo
+    if(lsmCheck) then 
+       if( rc /= 0 ) then
+          call LDT_warning(rc,"WARNING: SAI data source: not defined")
+       endif
     endif
-
+    
   end subroutine LDT_laisai_readParamSpecs
 !BOP
 ! 

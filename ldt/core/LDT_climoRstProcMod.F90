@@ -105,7 +105,7 @@ module LDT_climoRstProcMod
 !
 !EOP  
   
-      integer                   :: n,i 
+      integer                   :: n,i
       integer                   :: status
       character*20              :: stime
       character*3               :: month_name(12)
@@ -147,48 +147,48 @@ module LDT_climoRstProcMod
       call ESMF_ConfigGetAttribute(LDT_config,LDT_rst_struc%wformat, &
            label="Input restart file format:",&
            default="netcdf",rc=status)
-
+      
       LDT_rc%pass = 1
-
+      
       call LDT_registerAlarm("LIS restart alarm",&
            LDT_rst_struc%modelTs, &
            LDT_rst_struc%outInterval)
-
+      
       call LDT_update_timestep(LDT_rc, n, LDT_rst_struc%modelTs)
-
-
+      
+      
       call ESMF_ConfigGetAttribute(LDT_config,LDT_rst_struc%outMode,&
            label="Output restart file generation mode:",&
            rc=status)
       call LDT_verify(status,'Output restart file generation mode: not defined')
-
+      
       call ESMF_ConfigGetAttribute(LDT_config,LDT_rst_struc%outIntervalType,&
            label="Output restart file averaging interval type:",&
            rc=status)
       call LDT_verify(status,'Output restart file averaging interval type: not defined')
 
-      if(LDT_rc%rstsource.eq."LSM") then 
-         if(LDT_rc%lsm.eq."Noah.3.2") then 
+      if(LDT_rc%rstsource.eq."LSM") then
+         if(LDT_rc%lsm(1).eq."Noah.3.2") then 
             model_name = "NOAH32"
-         elseif(LDT_rc%lsm.eq."Noah.3.3") then 
+         elseif(LDT_rc%lsm(1).eq."Noah.3.3") then 
             model_name = "NOAH33"
-         elseif(LDT_rc%lsm.eq."Noah.3.6") then 
+         elseif(LDT_rc%lsm(1).eq."Noah.3.6") then 
             model_name = "NOAH36"
-         elseif(LDT_rc%lsm.eq."Noah.3.9") then 
+         elseif(LDT_rc%lsm(1).eq."Noah.3.9") then 
             model_name = "NOAH39"
-         elseif(LDT_rc%lsm.eq."Noah.2.7.1") then 
+         elseif(LDT_rc%lsm(1).eq."Noah.2.7.1") then 
             model_name = "NOAH271"
-         elseif(LDT_rc%lsm.eq."Noah-MP.3.6") then 
+         elseif(LDT_rc%lsm(1).eq."Noah-MP.3.6") then 
             model_name = "NOAHMP36"
-         elseif(LDT_rc%lsm.eq."Noah-MP.4.0.1") then 
+         elseif(LDT_rc%lsm(1).eq."Noah-MP.4.0.1") then 
             model_name = "NOAHMP401"
-         elseif(LDT_rc%lsm.eq."CLSMF2.5") then 
+         elseif(LDT_rc%lsm(1).eq."CLSMF2.5") then 
             model_name = "CLSMF25"
-         elseif(LDT_rc%lsm.eq."RUC.3.7") then 
+         elseif(LDT_rc%lsm(1).eq."RUC.3.7") then 
             model_name = "RUC37"
-         elseif(LDT_rc%lsm.eq."VIC.4.1.1") then 
+         elseif(LDT_rc%lsm(1).eq."VIC.4.1.1") then 
             model_name = "VIC411"
-         elseif(LDT_rc%lsm.eq."VIC.4.1.2") then 
+         elseif(LDT_rc%lsm(1).eq."VIC.4.1.2") then 
             model_name = "VIC412"
          else
             write(LDT_logunit,*) "[INFO] Climatological Restart File Generation - LSMs supported: "
@@ -198,7 +198,7 @@ module LDT_climoRstProcMod
             write(LDT_logunit,*) "[ERR] No other LSMs supported at this time ... stopping."
             call LDT_endrun() 
          endif
-
+         
          if(LDT_rst_struc%outMode.eq."climatological average") then 
             if(LDT_rst_struc%outIntervalType.eq."monthly") then 
                
@@ -209,36 +209,36 @@ module LDT_climoRstProcMod
                
                call system('mkdir -p '//(LDT_rc%odir))
                do i=1,12
-!hkb add netcdf and binary format selections below.
-                 if(LDT_rst_struc%wformat.eq."netcdf") then
-                  LDT_rst_struc%outfname(i) = &
-                       trim(LDT_rc%odir)//"/LDT_CLIM_RST_"//trim(month_name(i))//&
-                       "_"//trim(model_name)//".nc"
-                  
+                  !hkb add netcdf and binary format selections below.
+                  if(LDT_rst_struc%wformat.eq."netcdf") then
+                     LDT_rst_struc%outfname(i) = &
+                          trim(LDT_rc%odir)//"/LDT_CLIM_RST_"//trim(month_name(i))//&
+                          "_"//trim(model_name)//".nc"
+                     
 #if (defined USE_NETCDF3 || defined USE_NETCDF4) 
-               
+                     
 #if (defined USE_NETCDF4)
-                  call LDT_verify(nf90_create(path=LDT_rst_struc%outfname(i),&
-                       cmode=nf90_netcdf4,&
-                       ncid = LDT_rst_struc%ftn(i)),&
-                       'creating netcdf file failed in LDT_climoRstProcMod')
+                     call LDT_verify(nf90_create(path=LDT_rst_struc%outfname(i),&
+                          cmode=nf90_netcdf4,&
+                          ncid = LDT_rst_struc%ftn(i)),&
+                          'creating netcdf file failed in LDT_climoRstProcMod')
 #endif
 #if (defined USE_NETCDF3)
-                  call LDT_verify(nf90_create(path=LDT_rst_struc%outfname(i),&
-                       cmode=nf90_clobber,&
-                       ncid = LDT_rst_struc%ftn(i)),&
-                       'creating netcdf file failed in LDT_climoRstProcMod')
+                     call LDT_verify(nf90_create(path=LDT_rst_struc%outfname(i),&
+                          cmode=nf90_clobber,&
+                          ncid = LDT_rst_struc%ftn(i)),&
+                          'creating netcdf file failed in LDT_climoRstProcMod')
 #endif
 #endif
-                 elseif (LDT_rst_struc%wformat.eq."binary") then
-                  LDT_rst_struc%outfname(i) = &
-                       trim(LDT_rc%odir)//"/LDT_CLIM_RST_"//trim(month_name(i))//&
-                       "_"//trim(model_name)//".bin"
-                  LDT_rst_struc%ftn(i) = LDT_getNextUnitNumber()
-                  open(LDT_rst_struc%ftn(i),&
-                       file=trim(LDT_rst_struc%outfname(i)), &
-                       form='unformatted')
-                 endif  !wformat
+                  elseif (LDT_rst_struc%wformat.eq."binary") then
+                     LDT_rst_struc%outfname(i) = &
+                          trim(LDT_rc%odir)//"/LDT_CLIM_RST_"//trim(month_name(i))//&
+                          "_"//trim(model_name)//".bin"
+                     LDT_rst_struc%ftn(i) = LDT_getNextUnitNumber()
+                     open(LDT_rst_struc%ftn(i),&
+                          file=trim(LDT_rst_struc%outfname(i)), &
+                          form='unformatted')
+                  endif  !wformat
                enddo
             else
                write(LDT_logunit,*) '[ERR] Averaging interval type ',&
@@ -246,54 +246,53 @@ module LDT_climoRstProcMod
                write(LDT_logunit,*) '[ERR] is not currently supported...'
                call LDT_endrun()
                
-            endif
-         else
-            write(LDT_logunit,*) '[ERR] Restart processing mode ',&
-                 trim(LDT_rst_struc%outMode)
-            write(LDT_logunit,*) '[ERR] is not currently supported...'
-            call LDT_endrun()
-         endif
-      elseif(LDT_rc%rstsource.eq."Routing") then 
-         model_name = LDT_rc%routingmodel
-
-         if(LDT_rst_struc%outMode.eq."climatological average") then 
-            if(LDT_rst_struc%outIntervalType.eq."monthly") then 
-               
-               LDT_rst_struc%nfiles = 12 
-               
-               allocate(LDT_rst_struc%outfname(LDT_rst_struc%nfiles))
-               allocate(LDT_rst_struc%ftn(LDT_rst_struc%nfiles))
-               
-               call system('mkdir -p '//(LDT_rc%odir))
-               do i=1,12
-                  LDT_rst_struc%outfname(i) = &
-                       trim(LDT_rc%odir)//"/LDT_CLIM_RST_"//trim(month_name(i))//&
-                       "_"//trim(model_name)//".bin"
-                  
-                   LDT_rst_struc%ftn(i) = LDT_getNextUnitNumber()
-                   open(LDT_rst_struc%ftn(i),&
-                        file=trim(LDT_rst_struc%outfname(i)), &
-                        form='unformatted')
-                enddo
+               endif            
             else
-               write(LDT_logunit,*) '[ERR] Averaging interval type ',&
-                    trim(LDT_rst_struc%outIntervalType)
+               write(LDT_logunit,*) '[ERR] Restart processing mode ',&
+                    trim(LDT_rst_struc%outMode)
                write(LDT_logunit,*) '[ERR] is not currently supported...'
                call LDT_endrun()
-               
             endif
-         else
-            write(LDT_logunit,*) '[ERR] Restart processing mode ',&
-                 trim(LDT_rst_struc%outMode)
-            write(LDT_logunit,*) '[ERR] is not currently supported...'
-            call LDT_endrun()
+         elseif(LDT_rc%rstsource.eq."Routing") then 
+            model_name = LDT_rc%routingmodel
+            
+            if(LDT_rst_struc%outMode.eq."climatological average") then 
+               if(LDT_rst_struc%outIntervalType.eq."monthly") then 
+                  
+                  LDT_rst_struc%nfiles = 12 
+                  
+                  allocate(LDT_rst_struc%outfname(LDT_rst_struc%nfiles))
+                  allocate(LDT_rst_struc%ftn(LDT_rst_struc%nfiles))
+                  
+                  call system('mkdir -p '//(LDT_rc%odir))
+                  do i=1,12
+                     LDT_rst_struc%outfname(i) = &
+                          trim(LDT_rc%odir)//"/LDT_CLIM_RST_"//trim(month_name(i))//&
+                          "_"//trim(model_name)//".bin"
+                     
+                     LDT_rst_struc%ftn(i) = LDT_getNextUnitNumber()
+                     open(LDT_rst_struc%ftn(i),&
+                          file=trim(LDT_rst_struc%outfname(i)), &
+                          form='unformatted')
+                  enddo
+               else
+                  write(LDT_logunit,*) '[ERR] Averaging interval type ',&
+                       trim(LDT_rst_struc%outIntervalType)
+                  write(LDT_logunit,*) '[ERR] is not currently supported...'
+                  call LDT_endrun()
+                  
+               endif
+            else
+               write(LDT_logunit,*) '[ERR] Restart processing mode ',&
+                    trim(LDT_rst_struc%outMode)
+               write(LDT_logunit,*) '[ERR] is not currently supported...'
+               call LDT_endrun()
+            endif
          endif
-
-      endif
-
-      LDT_rst_struc%startFlag = .true. 
-
-    end subroutine LDT_climoRstProcInit
+         
+         LDT_rst_struc%startFlag = .true. 
+         
+       end subroutine LDT_climoRstProcInit
 
 !BOP
 ! 
@@ -363,49 +362,50 @@ module LDT_climoRstProcMod
          !read each file, save to variables. 
          
          if(LDT_rc%rstsource.eq."LSM") then 
-           dir_name = 'SURFACEMODEL'
-           if(LDT_rc%lsm.eq."Noah.3.2") then
-              model_name = "NOAH32"
-           elseif(LDT_rc%lsm.eq."Noah.3.3") then
-              model_name = "NOAH33"
-           elseif(LDT_rc%lsm.eq."Noah.3.6") then
-              model_name = "NOAH36"
-           elseif(LDT_rc%lsm.eq."Noah.3.9") then
-              model_name = "NOAH39"
-           elseif(LDT_rc%lsm.eq."Noah.2.7.1") then
-              model_name = "NOAH271"
-           elseif(LDT_rc%lsm.eq."Noah-MP.3.6") then
-              model_name = "NOAHMP36"
-           elseif(LDT_rc%lsm.eq."Noah-MP.4.0.1") then
-              model_name = "NOAHMP401"
-           elseif(LDT_rc%lsm.eq."CLSMF2.5") then 
-              model_name = "CLSMF25"
-           elseif(LDT_rc%lsm.eq."RUC.3.7") then    
-              model_name = "RUC37"
-           elseif(LDT_rc%lsm.eq."VIC.4.1.1") then
-              model_name = "VIC411"
-           elseif(LDT_rc%lsm.eq."VIC.4.1.2") then
-              model_name = "VIC412"
-           else
-              write(LDT_logunit,*) "[INFO] Climatological Restart File Generation - LSMs supported: "
-              write(LDT_logunit,*) "  -- CLSMF2.5, Noah.3.2, Noah.3.3, Noah.3.6, Noah.3.9, "
-              write(LDT_logunit,*) "  -- Noah-MP.3.6, Noah-MP.4.0.1, "
-              write(LDT_logunit,*) "     Noah.2.7.1, RUC.3.7, VIC.4.1.1, VIC.4.1.2 "
-              write(LDT_logunit,*) "[ERR] No other LSMs supported at this time ... stopping."
-              call LDT_endrun() 
+            dir_name = 'SURFACEMODEL'
+
+            if(LDT_rc%lsm(1).eq."Noah.3.2") then
+               model_name = "NOAH32"
+            elseif(LDT_rc%lsm(1).eq."Noah.3.3") then
+               model_name = "NOAH33"
+            elseif(LDT_rc%lsm(1).eq."Noah.3.6") then
+               model_name = "NOAH36"
+            elseif(LDT_rc%lsm(1).eq."Noah.3.9") then
+               model_name = "NOAH39"
+            elseif(LDT_rc%lsm(1).eq."Noah.2.7.1") then
+               model_name = "NOAH271"
+            elseif(LDT_rc%lsm(1).eq."Noah-MP.3.6") then
+               model_name = "NOAHMP36"
+            elseif(LDT_rc%lsm(1).eq."Noah-MP.4.0.1") then
+               model_name = "NOAHMP401"
+            elseif(LDT_rc%lsm(1).eq."CLSMF2.5") then 
+               model_name = "CLSMF25"
+            elseif(LDT_rc%lsm(1).eq."RUC.3.7") then    
+               model_name = "RUC37"
+            elseif(LDT_rc%lsm(1).eq."VIC.4.1.1") then
+               model_name = "VIC411"
+            elseif(LDT_rc%lsm(1).eq."VIC.4.1.2") then
+               model_name = "VIC412"
+            else
+               write(LDT_logunit,*) "[INFO] Climatological Restart File Generation - LSMs supported: "
+               write(LDT_logunit,*) "  -- CLSMF2.5, Noah.3.2, Noah.3.3, Noah.3.6, Noah.3.9, "
+               write(LDT_logunit,*) "  -- Noah-MP.3.6, Noah-MP.4.0.1, "
+               write(LDT_logunit,*) "     Noah.2.7.1, RUC.3.7, VIC.4.1.1, VIC.4.1.2 "
+               write(LDT_logunit,*) "[ERR] No other LSMs supported at this time ... stopping."
+               call LDT_endrun() 
             endif
          elseif(LDT_rc%rstsource.eq."Routing") then 
             dir_name = 'ROUTING'
             model_name = LDT_rc%routingmodel
          endif
-
+         
          yr = LDT_rc%yr
          mo = LDT_rc%mo
          da = LDT_rc%da
          hr = LDT_rc%hr
          mn = LDT_rc%mn
          ss = LDT_rc%ss
-
+         
          if(LDT_rst_struc%outMode.eq."climatological average") then 
             if(LDT_rst_struc%outIntervalType.eq."monthly") then 
                tindex = LDT_rc%mo
@@ -539,8 +539,10 @@ module LDT_climoRstProcMod
                              dims(1),dims(n_dimids(2)),LDT_rst_struc%nfiles))
                         LDT_rst_struc%rstOut(k)%outVar = 0.0
                         LDT_rst_struc%rstOut(k)%noutVar = 0.0
-!hkb allocate vic arrays
-                        if(LDT_rc%lsm.eq."VIC.4.1.2") then
+                        !hkb allocate vic arrays
+                        !assumed that the climo restart is done only for one LSM at a time
+                        if(LDT_rc%lsm(1).eq."VIC.4.1.2") then
+                           
                            call LDT_vic412rstInit(n,LDT_rst_struc%nfiles, &
                                                   dims(1),dims(n_dimids(2)))
                            allocate(VIC_struc(n)%state_chunk(dims(1),dims(n_dimids(2))))
@@ -577,8 +579,9 @@ module LDT_climoRstProcMod
                      call LDT_verify(nf90_get_var(ftn,k,var),&
                           'nf90_get_var failed in LDT_climoRstProcMod')
 
-!hkb vic needs unpacking and accumulate here !!!
-                    if(LDT_rc%lsm.eq."VIC.4.1.2") then
+                     !hkb vic needs unpacking and accumulate here !!!
+                     !assume that climo restart is done only for one LSM at a time
+                    if(LDT_rc%lsm(1).eq."VIC.4.1.2") then
                      call LDT_vic412rstDiagnose(n,tindex, &
                           dims(1),dims(n_dimids(2)),var)
                      do t=1,dims(1)
@@ -657,8 +660,8 @@ module LDT_climoRstProcMod
                  write(LDT_logunit,*) '[ERR] grid space mismatch - VIC 4.1.2 halted'
                  call LDT_endrun()
               endif
-
-           if(LDT_rc%lsm.eq."VIC.4.1.2") then
+              
+           if(LDT_rc%lsm(1).eq."VIC.4.1.2") then
               call count_model_state_412(n,npatch,state_chunk_size)
               LDT_rst_struc%nVars = 1
 
@@ -717,7 +720,7 @@ module LDT_climoRstProcMod
 
            else ! all other models
               write(LDT_logunit,*) '[ERR] binary format restart file is not'
-              write(LDT_logunit,*) '[ERR] supported for ',trim(LDT_rc%lsm)
+              write(LDT_logunit,*) '[ERR] supported for ',trim(LDT_rc%lsm(1))
               write(LDT_logunit,*) '[ERR] ...stopping.'
               call LDT_endrun()
            endif  ! VIC
@@ -809,7 +812,7 @@ module LDT_climoRstProcMod
       if(LDT_rc%endtime.eq.1) then 
          call writeRstData(n,LDT_rst_struc%nVars,LDT_rst_struc%wformat)
 !hkb deallocate vic arrays
-         if((LDT_rc%lsm.eq."VIC.4.1.2").and.(LDT_rc%rstsource.eq."LSM")) then
+         if((LDT_rc%lsm(1).eq."VIC.4.1.2").and.(LDT_rc%rstsource.eq."LSM")) then
             call LDT_vic412rstFinalize(LDT_rst_struc%nfiles, &
                                        LDT_rst_struc%rstOut(1)%dims(1))
 
@@ -873,7 +876,7 @@ module LDT_climoRstProcMod
             dims(2) = 1
          endif
 !hkb vic needs averaging & packing here !!!
-        if((LDT_rc%lsm.eq."VIC.4.1.2").and.(LDT_rc%rstsource.eq."LSM")) then
+        if((LDT_rc%lsm(1).eq."VIC.4.1.2").and.(LDT_rc%rstsource.eq."LSM")) then
          do l=1,LDT_rst_struc%nfiles
             call LDT_vic412rstAvePack(n,l,dims(1),dims(2),LDT_rst_struc%rstOut(k)%noutVar(:,1,l))
             do t=1,dims(1)

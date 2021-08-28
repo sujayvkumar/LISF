@@ -256,13 +256,13 @@ module LDT_ensRstMod
          call LDT_verify(nf90_inq_dimId(ftn,"time",tdimId),&
               'nf90_inq_dimId failed for time LDT_ensRstMod')
          
-         if(LDT_rc%lsm .eq. "Noah.3.3") then 
+         if(LDT_rc%lsm(1) .eq. "Noah.3.3") then 
             model_name = "Noah version 3.3"
-         elseif(LDT_rc%lsm .eq. "CLSMF2.5") then 
+         elseif(LDT_rc%lsm(1) .eq. "CLSMF2.5") then 
             model_name = "Catchment"
-         elseif(LDT_rc%lsm .eq. "NoahMP.3.6") then
+         elseif(LDT_rc%lsm(1) .eq. "NoahMP.3.6") then
             model_name = "NOAHMP36"
-         elseif(LDT_rc%lsm .eq. "JULES.5.0") then 
+         elseif(LDT_rc%lsm(1) .eq. "JULES.5.0") then 
             model_name = "JULES50"
          endif
          
@@ -798,13 +798,13 @@ module LDT_ensRstMod
            'nf90_inq_dimId failed for time for LDT_ensRstMod')
 
       ! Does this need to be expanded?
-      if(LDT_rc%lsm .eq. "Noah.3.3") then 
+      if(LDT_rc%lsm(1) .eq. "Noah.3.3") then 
          model_name = "Noah version 3.3"
-      elseif(LDT_rc%lsm .eq. "CLSMF2.5") then 
+      elseif(LDT_rc%lsm(1) .eq. "CLSMF2.5") then 
          model_name = "Catchment"
-      elseif(LDT_rc%lsm .eq. "NoahMP.3.6") then 
+      elseif(LDT_rc%lsm(1) .eq. "NoahMP.3.6") then 
          model_name = "NOAHMP36"
-      elseif(LDT_rc%lsm .eq. "JULES.5.0") then 
+      elseif(LDT_rc%lsm(1) .eq. "JULES.5.0") then 
          model_name = "JULES50"
       endif
 

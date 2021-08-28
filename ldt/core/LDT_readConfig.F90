@@ -168,10 +168,20 @@ subroutine LDT_readConfig(configfile)
   LDT_rc%sf_model_type_name(5) = "Openwater"
   LDT_rc%sf_model_type(5)      = LDT_rc%openwater_index
 
+  call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%nLSMs,&
+       label="Number of land surface models:",default=1,rc=rc)
+  call LDT_verify(rc,'Number of land surface models: option not specified in the config file')
+
+  call ESMF_ConfigFindLabel(LDT_config,"Land surface model:",rc=rc)
+  allocate(LDT_rc%lsm(LDT_rc%nLSMs))
+  
+  do k = 1, LDT_rc%nLSMs
 !- LSM parameters:
-   call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%lsm,&
-        label="Land surface model:",default="none",rc=rc)
-   call LDT_verify(rc,'Land surface model: option not specified in the config file')
+     call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%lsm(k),&
+          label="Land surface model:",rc=rc)
+     call LDT_verify(rc,'Land surface model: option not specified in the config file')
+  enddo
+  
 
 !- Lake parameters:
    call ESMF_ConfigGetAttribute(LDT_config,LDT_rc%lakemodel,&

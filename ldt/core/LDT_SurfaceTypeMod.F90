@@ -180,7 +180,7 @@ contains
    !- Set surface type source name (for output field):
 !      write(*,*) (LDT_rc%sf_model_type_name_select(i),i=1, LDT_rc%nsf_model_types )
 
-      if( isSurfaceTypeSelected(1) ) lsmname = trim(LDT_rc%lsm)
+      if( isSurfaceTypeSelected(1) ) lsmname = trim(LDT_rc%lsm(1))
       if( isSurfaceTypeSelected(2) ) lakename = "+"//trim(LDT_rc%lakemodel)
 !      if( isSurfaceTypeSelected(3) ) glaciername = "+"//trim(LDT_rc%glaciermodel)
 !      if( isSurfaceTypeSelected(4) ) wetlandname = "+"//trim(LDT_rc%wetlandmodel)

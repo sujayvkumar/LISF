@@ -399,12 +399,6 @@ contains
 ! -- RUC-MP Planetary Boundary Layer Height: --
 
    check_data = .false.
-   if( LDT_rc%lsm == "RUC-3.7" ) then
-
-!   if(check_data) &! then
-     write(LDT_logunit,*)" - - - - - - - - - RUC-3.7 Parameters - - - - - - - - - - - -"
-
-   endif
 
   end subroutine RUCParms_init
 

@@ -123,6 +123,9 @@ contains
     character*100    :: source
     integer          :: rc
     integer          :: n
+
+    integer          :: k
+    logical          :: lsmCheck
     
     allocate(LDT_albedo_struc(LDT_rc%nnest))
 
@@ -133,28 +136,42 @@ contains
             "ALBEDO",source)
     enddo
 
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 ) then ! .or. &
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs       
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"Noah") == 1 ) then ! .or. &
+          lsmCheck = .true.
+       endif
+    enddo
+    
+    if(lsmCheck) then
 !        index(LDT_rc%lsm,"CLSM") == 1 ) then
       if( rc /= 0 ) then
          call LDT_warning(rc,"[WARN] Albedo data source: not defined")
       endif
-    elseif( index(LDT_rc%lsm,"CLSM") == 1 ) then
-      write(LDT_logunit,*) &
-       "[INFO] CLSM F2.5 :: Currently albedo maps are built-in to the model parameter side"
-    endif
-
+!    elseif( index(LDT_rc%lsm,"CLSM") == 1 ) then
+!      write(LDT_logunit,*) &
+!       "[INFO] CLSM F2.5 :: Currently albedo maps are built-in to the model par!ameter side"
+!    endif
+   endif
     call ESMF_ConfigFindLabel(LDT_config,"Max snow albedo data source:",rc=rc)
     do n=1,LDT_rc%nnest
        call ESMF_ConfigGetAttribute(LDT_config,source,rc=rc)
        call LDT_set_param_attribs(rc,LDT_albedo_struc(n)%mxsnoalb,&
             "MXSNALBEDO",source)
     enddo
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 .or. &
-        index(LDT_rc%lsm,"CLSM") == 1 .or. &
-        index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
+
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"Noah") == 1 .or. &
+            index(LDT_rc%lsm(k),"CLSM") == 1 .or. &
+            index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
       if( rc /= 0 ) then
          call LDT_warning(rc,"[WARN] Max snow albedo data source: not defined")
       endif
@@ -170,6 +187,9 @@ contains
     character*100    :: ALBEDO12M
     character*100    :: SNOALB
     integer          :: flag
+
+    integer          :: k
+    logical          :: lsmCheck
     
     allocate(LDT_albedo_struc(LDT_rc%nnest))
 
@@ -186,20 +206,24 @@ contains
             "ALBEDO12M",source)
     enddo
 
-
-
-
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 ) then ! .or. &
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"Noah") == 1 ) then ! .or. &
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
 !        index(LDT_rc%lsm,"CLSM") == 1 ) then
       if( rc /= 0 ) then
          call LDT_warning(rc,"[WARN] Albedo data source: not defined")
       endif
-    elseif( index(LDT_rc%lsm,"CLSM") == 1 ) then
-      write(LDT_logunit,*) &
-       "[INFO] CLSM F2.5 :: Currently albedo maps are built-in to the model parameter side"
-    endif
-
+!    elseif( index(LDT_rc%lsm,"CLSM") == 1 ) then
+!      write(LDT_logunit,*) &
+!       "[INFO] CLSM F2.5 :: Currently albedo maps are built-in to the model par!ameter side"
+!    endif
+   endif
+   
     call ESMF_ConfigFindLabel(LDT_config,"Max snow albedo data source:",rc=rc)
     do n=1,LDT_rc%nnest
        call ESMF_ConfigGetAttribute(LDT_config,source,rc=rc)
@@ -212,12 +236,19 @@ contains
        call LDT_set_param_attribs(rc,LDT_albedo_struc(n)%mxsnoalb,&
             "SNOALB",source)
     enddo
- 
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 .or. &
-        index(LDT_rc%lsm,"CLSM") == 1 .or. &
-        index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
+
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"Noah") == 1 .or. &
+            index(LDT_rc%lsm(k),"CLSM") == 1 .or. &
+            index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .false.
+       endif
+    enddo
+
+    if(lsmCheck) then 
       if( rc /= 0 ) then
          call LDT_warning(rc,"[WARN] Max snow albedo data source: not defined")
       endif

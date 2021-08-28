@@ -59,12 +59,18 @@ contains
 !
 ! !INTERFACE: 
   subroutine LSMparams_init_LIS()
+
     integer :: flag
+    integer :: k
+    
     flag = 0
 
-    if(LDT_rc%lsm.ne."none") then 
-       call lsmparamprocinit(trim(LDT_rc%lsm)//char(0),flag)
-    endif
+    do k=1,LDT_rc%nLSMs
+       if(LDT_rc%lsm(k).ne."none") then          
+          call lsmparamprocinit(trim(LDT_rc%lsm(k))//char(0),flag)
+       endif
+    enddo
+    
   end subroutine LSMparams_init_LIS
 
 
@@ -76,25 +82,20 @@ contains
   subroutine LSMparams_init_LISHydro(flag)
     
     integer   :: flag
+    integer :: k
 
     flag = 1
 
-    if(LDT_rc%lsm.ne."none") then 
-       if(LDT_rc%lsm.ne."Noah.2.7.1".or.&
-            LDT_rc%lsm.ne."Noah.3.2".or.&
-            LDT_rc%lsm.ne."Noah.3.3".or.&
-            LDT_rc%lsm.ne."Noah.3.6".or.&
-            LDT_rc%lsm.ne."Noah.3.9".or.&
-            LDT_rc%lsm.ne."Noah-MP.3.6".or.&
-            LDT_rc%lsm.ne."Noah-MP.4.0.1") then 
-
-          call lsmparamprocinit(trim(LDT_rc%lsm)//char(0),flag)
+    do k=1,LDT_rc%nLSMs
+       if(LDT_rc%lsm(k).ne."none") then              
+          call lsmparamprocinit(trim(LDT_rc%lsm(k))//char(0),flag)
        else
           write(LDT_logunit,*)'[ERR] Support for this LSM in the LISHydro preprocessing mode'
           write(LDT_logunit,*)'[ERR] is not supported'
           call LDT_endrun()
        endif
-    endif
+    enddo
+    
   end subroutine LSMparams_init_LISHydro
 
 
@@ -109,12 +110,16 @@ contains
     integer     :: ftn
     integer     :: dimID(3)
     integer     :: monthID
+    integer     :: k
+    
+    do k=1,LDT_rc%nLSMs
+       if(LDT_rc%lsm(k).ne."none") then              
 
-    if(LDT_rc%lsm.ne."none") then 
-       call lsmparamprocwriteheader(trim(LDT_rc%lsm)//char(0),&
-            n,ftn,dimID, monthID)
-    endif
-
+          call lsmparamprocwriteheader(trim(LDT_rc%lsm(k))//char(0),&
+               n,ftn,dimID, monthID)
+       endif
+    enddo
+    
   end subroutine LDT_LSMparams_writeHeader
 
 
@@ -127,12 +132,15 @@ contains
 
     integer     :: n
     integer     :: ftn
+    integer     :: k
 
-    if(LDT_rc%lsm.ne."none") then 
-       call lsmparamprocwritedata(trim(LDT_rc%lsm)//char(0),&
-            n,ftn)
-    endif
+    do k=1,LDT_rc%nLSMs
+       if(LDT_rc%lsm(k).ne."none") then              
+          call lsmparamprocwritedata(trim(LDT_rc%lsm(k))//char(0),&
+               n,ftn)
+       endif
+    enddo
+    
   end subroutine LDT_LSMparams_writeData
-
-  
+     
 end module LDT_LSMparamProcMod

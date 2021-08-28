@@ -98,29 +98,29 @@ contains
     call LDT_verify(status,'Output restart filename: not defined')
     
     if(LDT_rc%rstsource.eq."LSM") then 
-       if(LDT_rc%lsm.eq."Noah.3.2") then 
+       if(LDT_rc%lsm(1).eq."Noah.3.2") then 
           model_name = "NOAH32"
-       elseif(LDT_rc%lsm.eq."Noah.3.3") then 
+       elseif(LDT_rc%lsm(1).eq."Noah.3.3") then 
           model_name = "NOAH33"
-       elseif(LDT_rc%lsm.eq."Noah.3.6") then 
+       elseif(LDT_rc%lsm(1).eq."Noah.3.6") then 
           model_name = "NOAH36"
-       elseif(LDT_rc%lsm.eq."Noah.3.9") then 
+       elseif(LDT_rc%lsm(1).eq."Noah.3.9") then 
           model_name = "NOAH39"
-       elseif(LDT_rc%lsm.eq."Noah.2.7.1") then 
+       elseif(LDT_rc%lsm(1).eq."Noah.2.7.1") then 
           model_name = "NOAH271"
-       elseif(LDT_rc%lsm.eq."Noah-MP.3.6") then 
+       elseif(LDT_rc%lsm(1).eq."Noah-MP.3.6") then 
           model_name = "NOAHMP36"
-       elseif(LDT_rc%lsm.eq."Noah-MP.4.0.1") then 
+       elseif(LDT_rc%lsm(1).eq."Noah-MP.4.0.1") then 
           model_name = "NOAHMP401"
-       elseif(LDT_rc%lsm.eq."CLSMF2.5") then 
+       elseif(LDT_rc%lsm(1).eq."CLSMF2.5") then 
           model_name = "CLSMF25"
-       elseif(LDT_rc%lsm.eq."RUC.3.7") then 
+       elseif(LDT_rc%lsm(1).eq."RUC.3.7") then 
           model_name = "RUC37"
-       elseif(LDT_rc%lsm.eq."VIC.4.1.1") then 
+       elseif(LDT_rc%lsm(1).eq."VIC.4.1.1") then 
           model_name = "VIC411"
-       elseif(LDT_rc%lsm.eq."VIC.4.1.2") then 
+       elseif(LDT_rc%lsm(1).eq."VIC.4.1.2") then 
           model_name = "VIC412"
-       elseif(LDT_rc%lsm .eq. "JULES.5.0") then
+       elseif(LDT_rc%lsm(1) .eq. "JULES.5.0") then
           model_name = "JULES50"
        else
           write(LDT_logunit,*) "[INFO] Restart File transform - LSMs supported: "
@@ -270,15 +270,15 @@ contains
        call LDT_verify(nf90_inquire_dimension(ftn,tdimID,len=ntimes),&
             'nf90_inquire_dimension failed in LDT_ensRstMod')
 
-       if(LDT_rc%lsm .eq. "Noah.3.3") then 
+       if(LDT_rc%lsm(1) .eq. "Noah.3.3") then 
           model_name = "Noah version 3.3"
-       elseif(LDT_rc%lsm .eq. "CLSMF2.5") then 
+       elseif(LDT_rc%lsm(1) .eq. "CLSMF2.5") then 
           model_name = "Catchment"
-       elseif(LDT_rc%lsm .eq. "NoahMP.3.6") then
+       elseif(LDT_rc%lsm(1) .eq. "NoahMP.3.6") then
           model_name = "NOAHMP36"
-       elseif(LDT_rc%lsm .eq. "NoahMP.3.9") then
+       elseif(LDT_rc%lsm(1) .eq. "NoahMP.3.9") then
           model_name = "NOAHMP39"       
-       elseif(LDT_rc%lsm .eq. "JULES.5.0") then 
+       elseif(LDT_rc%lsm(1) .eq. "JULES.5.0") then 
           model_name = "JULES50"
        endif
        

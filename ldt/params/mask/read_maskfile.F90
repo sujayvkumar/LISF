@@ -71,6 +71,9 @@ subroutine read_maskfile(n, vegtype, fgrd, localmask )
   real,    allocatable :: read_inputparm(:,:)  ! Read input parameter
   integer, allocatable :: read_inputparm_int(:,:)  ! Read input parameter
   real,    allocatable :: read_parmarray(:)    ! Read input parameter
+
+  logical              :: lsmCheck
+  integer              :: k
 !_________________________________________________________________________________
 
    LDT_rc%nmaskpts = 0.
@@ -148,7 +151,13 @@ subroutine read_maskfile(n, vegtype, fgrd, localmask )
    allocate(LDT_rc%global_mask(glpnc, glpnr))    ! Read in full global mask file
    LDT_rc%global_mask = LDT_rc%udef
 
-   if( LDT_rc%lsm == "CLSMF2.5") then
+   lsmCheck = .false.
+   do k=1,LDT_rc%nLSMs      
+      if( LDT_rc%lsm(k) == "CLSMF2.5") then
+         lsmCheck = .true.
+      endif
+   enddo
+   if(lsmCheck) then 
      line = 0
      do r = 1, glpnr
         do c = 1, glpnc

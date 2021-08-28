@@ -231,18 +231,18 @@ end subroutine read_CLM45_lc
       allocate(LDT_rc%global_mask(glpnc,glpnr))  !  Temporary ...
       allocate(dvalue(glpnc,glpnr,1,1))  !  Temporary ...
       LDT_rc%global_mask = LDT_rc%udef
-      if( LDT_rc%lsm == "CLM.4.5") then
-        call read_netcdf_4d_global(n,trim(LDT_rc%mfile(n)),"mask",2, &
-             "nj","ni","none","none",glpnc,glpnr,1,1,&
-             dvalue(:,:,1,1),shifted_gridDesc)
-        write(LDT_logunit,*) "Done reading CLM-4.5 mask values.",maxval(dvalue(:,:,1,1)),minval(dvalue(:,:,1,1))
-        write(LDT_logunit,*) "shifted_gridDesc= ",shifted_gridDesc
-        do r = 1, glpnr
-           do c = 1, glpnc
-              LDT_rc%global_mask(c,r) = real(dvalue(c,r,1,1))
-           enddo
-        enddo
-      endif
+
+      call read_netcdf_4d_global(n,trim(LDT_rc%mfile(n)),"mask",2, &
+           "nj","ni","none","none",glpnc,glpnr,1,1,&
+           dvalue(:,:,1,1),shifted_gridDesc)
+      write(LDT_logunit,*) "Done reading CLM-4.5 mask values.",maxval(dvalue(:,:,1,1)),minval(dvalue(:,:,1,1))
+      write(LDT_logunit,*) "shifted_gridDesc= ",shifted_gridDesc
+      do r = 1, glpnr
+         do c = 1, glpnc
+            LDT_rc%global_mask(c,r) = real(dvalue(c,r,1,1))
+         enddo
+      enddo
+
       deallocate(dvalue)
       write(LDT_logunit,*) "global_mask mask values.",maxval(LDT_rc%global_mask(:,:)),minval(LDT_rc%global_mask(:,:))
 

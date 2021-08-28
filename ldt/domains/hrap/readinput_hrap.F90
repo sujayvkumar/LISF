@@ -69,14 +69,21 @@ subroutine readinput_hrap(nest)
   real, allocatable :: ll_hrapx(:)
   real, allocatable :: ll_hrapy(:)
   type(proj_info)   :: proj_temp
+  
+  logical           :: lsmCheck
 ! ________________________________________________________________
 
 
+  lsmCheck = .false.
+  do k=1,LDT_rc%nLSMs
   ! Perform LSM check - do not run for other options:
-  if( LDT_rc%lsm .ne. "RDHM.3.5.6"    .and. &
-      LDT_rc%lsm .ne. "SACHTET.3.5.6" .and. &
-      LDT_rc%lsm .ne. "SNOW17" ) then 
-
+     if( LDT_rc%lsm(k) .ne. "RDHM.3.5.6"    .and. &
+          LDT_rc%lsm(k) .ne. "SACHTET.3.5.6" .and. &
+          LDT_rc%lsm(k) .ne. "SNOW17" ) then 
+        lsmCheck = .true.
+     endif
+  enddo
+  if(lsmCheck) then 
      write(LDT_logunit,*) &
         " [ERR] HRAP projection DISABLED for given options at this time!"
      write(LDT_logunit,*) &

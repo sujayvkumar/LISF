@@ -257,11 +257,14 @@ contains
 !  
 !EOP
 
-    integer   :: n 
-! ____________________________________________
+    integer   :: n
+    integer   :: k
 
-    write(LDT_logunit,*) "LSM User-selected:  ",trim(LDT_rc%lsm)
-
+    ! ____________________________________________
+    do k=1,LDT_rc%nLSMs
+       write(LDT_logunit,*) "LSM User-selected:  ",trim(LDT_rc%lsm(k))
+    enddo
+    
     write(LDT_logunit,*) " - - - - - - MODEL PARAMETERS (NOT Selected) - - - - - - - "
 
  !- Read Parameter Source Options:
@@ -315,9 +318,12 @@ contains
     integer   :: n 
     integer   :: rc
     integer   :: flag
+    integer   :: k
 ! ____________________________________________
 
-    write(LDT_logunit,*) "LSM User-selected:  ",trim(LDT_rc%lsm)
+    do k=1,LDT_rc%nLSMs
+       write(LDT_logunit,*) "LSM User-selected:  ",trim(LDT_rc%lsm(k))
+    enddo
 
     write(LDT_logunit,*) " - - - - - - MODEL PARAMETERS (NOT Selected) - - - - - - - "
 
@@ -460,6 +466,8 @@ contains
     logical             :: const_lc
     character*50        :: const_lctype
     character*100       :: source
+    integer             :: k
+    logical             :: lsmCheck
 ! _________________________________________
 
 ! - Universal LSM-based parameters -
@@ -577,10 +585,16 @@ contains
             "TEXTURE",source)
        if(rc.eq.0) call setTextureCategories(n,source)
     enddo
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
   ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 .or. &
-        index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
+       if( index(LDT_rc%lsm(k),"Noah") == 1 .or. &
+            index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
       if( rc /= 0 ) then
          call LDT_warning(rc,"WARNING: Soil texture data source: not defined")
          print *, "WARNING: Soil texture data source: not defined"
@@ -646,8 +660,15 @@ contains
     enddo
 
     LDT_rc%create_soilparms_option = "readin"
-    if( index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
+
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs       
+       if( index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .true. 
+       endif
+    enddo
+    if(lsmCheck) then 
       call ESMF_ConfigGetAttribute(LDT_config, LDT_rc%create_soilparms_option, &
                 label="Create or readin soil parameters:",rc=rc)
       call LDT_verify(rc,"Create or readin soil parameters: option not specified in the config file")
@@ -691,6 +712,8 @@ contains
     character*100       :: HGT_M
     character*100       :: LANDUSEF
     integer             :: flag
+    integer             :: k
+    logical             :: lsmCheck
 ! _________________________________________
 
 ! - Universal LSM-based parameters -
@@ -810,11 +833,17 @@ contains
             "TEXTURE",source)
        if(rc.eq.0) call setTextureCategories(n,source)
     enddo
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
   ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 .or. &
-        index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
-      if( rc /= 0 ) then
+       if( index(LDT_rc%lsm(k),"Noah") == 1 .or. &
+            index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
+       if( rc /= 0 ) then
          call LDT_warning(rc,"WARNING: Soil texture data source: not defined")
          print *, "WARNING: Soil texture data source: not defined"
       endif
@@ -885,12 +914,19 @@ contains
             "CURVATURE",source)
     enddo
 
-    LDT_rc%create_soilparms_option = "readin"
-    if( index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
-      call ESMF_ConfigGetAttribute(LDT_config, LDT_rc%create_soilparms_option, &
-                label="Create or readin soil parameters:",rc=rc)
-      call LDT_verify(rc,"Create or readin soil parameters: option not specified in the config file")
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
+       LDT_rc%create_soilparms_option = "readin"
+       if( index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .true.
+       endif
+    enddo
+
+    if(lsmCheck) then 
+       call ESMF_ConfigGetAttribute(LDT_config, LDT_rc%create_soilparms_option, &
+            label="Create or readin soil parameters:",rc=rc)
+       call LDT_verify(rc,"Create or readin soil parameters: option not specified in the config file")
     endif
     
     call LDT_soils_readParamSpecs()
@@ -940,6 +976,8 @@ contains
 
     integer               :: shuffle, deflate, deflate_level
     integer               :: bufsize
+    integer               :: k
+    logical               :: lsmCheck
 ! ________________________________________________________
 
     bufsize = 4
@@ -1011,11 +1049,17 @@ contains
                "EQUIDISTANT CYLINDRICAL"))
 !Hiroko: special handling for CLM-4.5 testcase to make output identical
 ! to Yudong's input_lis for 0.9x1.25 global resolution; latitude has to
-! be as the below specified corner values for LIS.
-    if (index(LDT_rc%lsm,"CLM.4.5") == 1 .and. &
-        LDT_rc%gridDesc(n,9) == 1.25     .and. &
-        LDT_rc%gridDesc(n,2) == 288      .and. &
-        LDT_rc%gridDesc(n,3) == 192) then
+          ! be as the below specified corner values for LIS.
+          lsmCheck = .false. 
+          do k=1,LDT_rc%nLSMs          
+             if (index(LDT_rc%lsm(k),"CLM.4.5") == 1 .and. &
+                  LDT_rc%gridDesc(n,9) == 1.25     .and. &
+                  LDT_rc%gridDesc(n,2) == 288      .and. &
+                  LDT_rc%gridDesc(n,3) == 192) then
+                lsmCheck = .true.
+             endif
+          enddo
+          if(lsmCheck) then 
           call LDT_verify(nf90_put_att(LDT_LSMparam_struc(n)%param_file_ftn,NF90_GLOBAL,"SOUTH_WEST_CORNER_LAT", &
                -89.529))
 !          call LDT_verify(nf90_put_att(LDT_LSMparam_struc(n)%param_file_ftn,NF90_GLOBAL,"SOUTH_WEST_CORNER_LON", &
@@ -1279,10 +1323,16 @@ contains
        allocate(LDT_LSMparam_struc(n)%xlat%value(LDT_rc%gnc(n),LDT_rc%gnr(n),1))
        allocate(LDT_LSMparam_struc(n)%xlon%value(LDT_rc%gnc(n),LDT_rc%gnr(n),1))
        
-!Hiroko: special handling for CLM-4.5 to make output identical to Yudong's input_lis
-    if( index(LDT_rc%lsm,"CLM.4.5") == 1 ) then
-       do r=1,LDT_rc%gnr(n)
-          do c=1,LDT_rc%gnc(n)
+       !Hiroko: special handling for CLM-4.5 to make output identical to Yudong's input_lis
+       lsmCheck = .false.
+       do k=1,LDT_rc%nLSMs         
+          if( index(LDT_rc%lsm(k),"CLM.4.5") == 1 ) then
+             lsmCheck = .true.
+          endif
+       enddo
+       if(lsmCheck) then 
+          do r=1,LDT_rc%gnr(n)
+             do c=1,LDT_rc%gnc(n)
              LDT_LSMparam_struc(n)%xlat%value(c,r,1) = &
                            real(CLM45_struc(n)%yc%dvalue(c,r,1,1)) 
              LDT_LSMparam_struc(n)%xlon%value(c,r,1) = &
@@ -1321,9 +1371,15 @@ contains
             LDT_rc%gnc_buf(n),LDT_rc%gnr_buf(n),1))
        allocate(LDT_LSMparam_struc(n)%xlon_b%value(&
             LDT_rc%gnc_buf(n),LDT_rc%gnr_buf(n),1))
-       
-!Hiroko: special handling for CLM-4.5 to make output identical to Yudong's input_lis
-    if( index(LDT_rc%lsm,"CLM.4.5") == 1 ) then
+
+       lsmCheck = .false.
+       do k=1,LDT_rc%nLSMs
+          !Hiroko: special handling for CLM-4.5 to make output identical to Yudong's input_lis
+          if( index(LDT_rc%lsm(k),"CLM.4.5") == 1 ) then
+             lsmCheck = .true.
+          endif
+       enddo
+       if(lsmCheck) then 
        do r=-1,LDT_rc%gnr(n)+2
           do c=-1,LDT_rc%gnc(n)+2
              call ij_to_latlon(LDT_domain(n)%ldtproj,&

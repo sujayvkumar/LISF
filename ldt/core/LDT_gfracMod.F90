@@ -119,6 +119,9 @@ contains
     character*100     :: source
     integer           :: rc
     integer           :: n
+
+    integer           :: k
+    logical           :: lsmCheck
     
     allocate(LDT_gfrac_struc(LDT_rc%nnest))
 
@@ -134,11 +137,19 @@ contains
        call LDT_set_param_attribs(rc,LDT_gfrac_struc(n)%shdmin,&
             "SHDMIN",source)
     enddo
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 .or. &
-        index(LDT_rc%lsm,"CLSM") == 1 .or. &
-        index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
+
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs       
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"Noah") == 1 .or. &
+            index(LDT_rc%lsm(k),"CLSM") == 1 .or. &
+            index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .true.
+       endif
+    enddo
+
+    if(lsmCheck) then 
       if( rc /= 0 ) then
          call LDT_warning(rc,"WARNING: Greenness data source: not defined")
       endif
@@ -153,7 +164,10 @@ contains
     integer           :: n
     character*100     :: GREENFRAC
     integer           :: flag
-    
+
+    integer           :: k
+    logical           :: lsmCheck
+        
     allocate(LDT_gfrac_struc(LDT_rc%nnest))
 
   ! Greenness fraction files:
@@ -174,11 +188,19 @@ contains
        call LDT_set_param_attribs(rc,LDT_gfrac_struc(n)%shdmin,&
             "SHDMIN",source)
     enddo
-  ! LSM-required parameter check:
-    if( index(LDT_rc%lsm,"Noah") == 1 .or. &
-        index(LDT_rc%lsm,"CLSM") == 1 .or. &
-        index(LDT_rc%lsm,"RDHM") == 1 .or. &
-        index(LDT_rc%lsm,"SACHTET") == 1 ) then
+
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs       
+       ! LSM-required parameter check:
+       if( index(LDT_rc%lsm(k),"Noah") == 1 .or. &
+            index(LDT_rc%lsm(k),"CLSM") == 1 .or. &
+            index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+            index(LDT_rc%lsm(k),"SACHTET") == 1 ) then
+          lsmCheck = .true.
+       endif
+    enddo
+
+    if(lsmCheck) then 
       if( rc /= 0 ) then
          call LDT_warning(rc,"WARNING: Greenness data source: not defined")
       endif

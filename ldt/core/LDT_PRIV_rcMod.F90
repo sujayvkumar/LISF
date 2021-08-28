@@ -58,8 +58,9 @@ module LDT_PRIV_rcMod
      integer                :: wetland_index 
      integer                :: openwater_index 
 
-! -- Land/Surface model inputs:
-     character*50           :: lsm
+     ! -- Land/Surface model inputs:
+     integer                      :: nLSMs
+     character*50, allocatable    :: lsm(:)
      character*50           :: lakemodel
      character*50           :: routingmodel
      logical                :: inc_water_pts

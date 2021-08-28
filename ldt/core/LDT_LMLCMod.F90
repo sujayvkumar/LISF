@@ -839,6 +839,9 @@ contains
     integer      :: dimID(3)
     integer      :: tdimID(3)
 
+    integer     :: k
+    logical     :: lsmCheck
+    
 #if(defined USE_NETCDF3 || defined USE_NETCDF4)
     tdimID(1) = dimID(1)
     tdimID(2) = dimID(2)
@@ -857,8 +860,14 @@ contains
     call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"LANDCOVER_SCHEME", &
          LDT_rc%lc_type(n)))
 
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
   ! Attributes serving Noah-MP only (at this time):
-    if ((LDT_rc%lsm.eq."Noah-MP.3.6").or.(LDT_rc%lsm.eq."Noah-MP.4.0.1")) then
+       if ((LDT_rc%lsm(k).eq."Noah-MP.3.6").or.(LDT_rc%lsm(k).eq."Noah-MP.4.0.1")) then
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
       select case( LDT_rc%lc_type(n) ) 
        case( "IGBPNCEP" ) 
          call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"NUMBER_LANDCATS", &
@@ -985,6 +994,9 @@ contains
     integer      :: luindexId
     integer      :: flag
 
+    integer     :: k
+    logical     :: lsmCheck
+
 #if(defined USE_NETCDF3 || defined USE_NETCDF4)
     tdimID(1) = dimID(1)
     tdimID(2) = dimID(2)
@@ -1038,8 +1050,14 @@ contains
     call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"MMINLU", &
          "MODIFIED_IGBP_MODIS_NOAH"))
 
-  ! Attributes serving Noah-MP only (at this time):
-    if( LDT_rc%lsm == "Noah-MP.3.6" ) then
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
+       ! Attributes serving Noah-MP only (at this time):
+       if( LDT_rc%lsm(k) == "Noah-MP.3.6" ) then
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
       select case( LDT_rc%lc_type(n) ) 
        case( "IGBPNCEP" ) 
          call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"NUM_LAND_CAT", &

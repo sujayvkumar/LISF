@@ -164,7 +164,9 @@ module LDT_soilsMod
      character*100    :: source
      integer          :: rc
      integer          :: n
-     
+     integer           :: k
+     logical           :: lsmCheck
+
      rc = 0
 
      allocate(LDT_soils_struc(LDT_rc%nnest))
@@ -183,8 +185,14 @@ module LDT_soilsMod
         call LDT_set_param_attribs(rc,LDT_soils_struc(n)%color,&
              "SOILCOLOR",source)
      enddo
-   ! LSM-required parameter check:
-     if( index(LDT_rc%lsm,"CLM") == 1 ) then
+     lsmCheck = .false.
+     do k=1,LDT_rc%nLSMs
+        ! LSM-required parameter check:
+        if( index(LDT_rc%lsm(k),"CLM") == 1 ) then
+           lsmCheck = .false.
+        endif
+     enddo
+     if(lsmCheck) then 
        if( rc /= 0 ) then
           call LDT_warning(rc,"[WARN] Soil color data source: not defined")
        endif
@@ -198,10 +206,17 @@ module LDT_soilsMod
         call LDT_set_param_attribs(rc,LDT_soils_struc(n)%porosity,&
              "POROSITY",source)
      enddo
-   ! LSM-required parameter check:
-     if( index(LDT_rc%lsm,"CLSM") == 1 ) then
-       if( rc /= 0 ) then
-          call LDT_warning(rc,"[WARN] Porosity data source: not defined")
+
+     lsmCheck = .false.
+     do k=1,LDT_rc%nLSMs
+        ! LSM-required parameter check:
+        if( index(LDT_rc%lsm(k),"CLSM") == 1 ) then
+           lsmCheck = .true.
+        endif
+     enddo
+     if(lsmCheck) then 
+           if( rc /= 0 ) then
+              call LDT_warning(rc,"[WARN] Porosity data source: not defined")
        endif
      endif
      
@@ -1732,6 +1747,8 @@ module LDT_soilsMod
     integer    :: ftn
     integer    :: dimID(3)
     integer    :: tdimID(3)
+    integer    :: k
+    logical    :: lsmCheck
 
 #if(defined USE_NETCDF3 || defined USE_NETCDF4)
 
@@ -1747,11 +1764,18 @@ module LDT_soilsMod
        call LDT_writeNETCDFdataHeader(n,ftn,tdimID,&
             LDT_LSMparam_struc(n)%texture)
 
-     ! Add if creating soils for SAC-HTET:
-       if( (index(LDT_rc%lsm,"RDHM") == 1 .or. &
-            index(LDT_rc%lsm,"SACHTET") == 1 ) .and. & 
-            LDT_rc%create_soilparms_option == "create" ) then
 
+       lsmCheck = .false.
+       do k=1,LDT_rc%nLSMs
+     ! Add if creating soils for SAC-HTET:
+          if( (index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+               index(LDT_rc%lsm(k),"SACHTET") == 1 ) .and. & 
+               LDT_rc%create_soilparms_option == "create" ) then
+             lsmCheck = .true.
+          endif
+       enddo
+       
+       if(lsmCheck) then 
          call LDT_verify(nf90_def_dim(ftn,'texturelayers',&
               LDT_soils_struc(n)%texture_nlyrs%vlevels,tdimID(3)))
 
@@ -1805,8 +1829,14 @@ module LDT_soilsMod
     call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"SOILTEXT_SCHEME", &
          LDT_rc%soil_classification(1)))
 
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
   ! Attributes serving Noah-MP only (at this time):
-    if ((LDT_rc%lsm.eq."Noah-MP.3.6").or.(LDT_rc%lsm.eq."Noah-MP.4.0.1")) then
+       if ((LDT_rc%lsm(k).eq."Noah-MP.3.6").or.(LDT_rc%lsm(k).eq."Noah-MP.4.0.1")) then
+          lsmCheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
     ! Number of soil types:
       if( LDT_rc%soil_classification(1) == "STATSGO" ) then
          call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"NUMBER_SOILTYPES", &
@@ -1852,7 +1882,11 @@ module LDT_soilsMod
     integer    :: dimID(4)
     integer    :: tdimID(4)
     integer    :: flag
-    integer    :: sctdomId   
+    integer    :: sctdomId
+
+    integer    :: k
+    logical    :: lsmCheck
+    
 #if(defined USE_NETCDF3 || defined USE_NETCDF4)
 
     tdimID(1) = dimID(1)
@@ -1903,11 +1937,16 @@ module LDT_soilsMod
        call LDT_writeNETCDFdataHeader(n,ftn,tdimID,&
             LDT_LSMparam_struc(n)%texture,flag)
 
+       lsmCheck = .false.
+       do k=1,LDT_rc%nLSMs
      ! Add if creating soils for SAC-HTET:
-       if( (index(LDT_rc%lsm,"RDHM") == 1 .or. &
-            index(LDT_rc%lsm,"SACHTET") == 1 ) .and. & 
-            LDT_rc%create_soilparms_option == "create" ) then
-
+          if( (index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+               index(LDT_rc%lsm(k),"SACHTET") == 1 ) .and. & 
+               LDT_rc%create_soilparms_option == "create" ) then
+             lsmCheck = .true.
+          endif
+       enddo
+       if(lsmCheck) then 
          call LDT_verify(nf90_def_dim(ftn,'texturelayers',&
               LDT_soils_struc(n)%texture_nlyrs%vlevels,tdimID(3)))
 
@@ -1963,8 +2002,14 @@ module LDT_soilsMod
     call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"ISOILWATER", &
          14))
 
+    lsmCheck = .false.
+    do k=1,LDT_rc%nLSMs
   ! Attributes serving Noah-MP only (at this time):
-    if( LDT_rc%lsm == "Noah-MP.3.6" ) then
+       if( LDT_rc%lsm(k) == "Noah-MP.3.6" ) then
+          lsmcheck = .true.
+       endif
+    enddo
+    if(lsmCheck) then 
     ! Number of soil types:
       if( LDT_rc%soil_classification(1) == "STATSGO" ) then
          call LDT_verify(nf90_put_att(ftn,NF90_GLOBAL,"NUMBER_SOILTYPES", &
@@ -2005,14 +2050,22 @@ module LDT_soilsMod
     integer      :: n 
     integer      :: ftn
     integer      :: ierr
-
+    integer      :: k
+    logical      :: lsmCheck
+    
     if(LDT_LSMparam_struc(n)%texture%selectOpt.eq.1) then
        call LDT_writeNETCDFdata(n,ftn,LDT_LSMparam_struc(n)%texture)
 
+       lsmCheck = .false.
+       do k=1,LDT_rc%nLSMs
      ! Add if creating soils for SAC-HTET:
-       if( (index(LDT_rc%lsm,"RDHM") == 1 .or. &
-            index(LDT_rc%lsm,"SACHTET") == 1 ) .and. &
-            LDT_rc%create_soilparms_option == "create" ) then
+          if( (index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+               index(LDT_rc%lsm(k),"SACHTET") == 1 ) .and. &
+               LDT_rc%create_soilparms_option == "create" ) then
+             lsmCheck = .true.
+          endif
+       enddo
+       if(lsmCheck) then 
          call LDT_writeNETCDFdata(n,ftn,LDT_soils_struc(n)%texture_nlyrs)
        endif
     endif
@@ -2065,7 +2118,9 @@ module LDT_soilsMod
     integer      :: ftn
     integer      :: ierr
     integer      :: flag
-    integer      :: nc,nr    
+    integer      :: nc,nr
+    integer      :: k
+    logical      :: lsmCheck
 
     !write SCT_DOM
     nr=size(LDT_LSMparam_struc(n)%sctdom%value,1)
@@ -2079,10 +2134,16 @@ module LDT_soilsMod
     if(LDT_LSMparam_struc(n)%texture%selectOpt.eq.1) then
        call LDT_writeNETCDFdata(n,ftn,LDT_LSMparam_struc(n)%texture)
 
+       lsmCheck = .false.
+       do k=1,LDT_rc%nLSMs
      ! Add if creating soils for SAC-HTET:
-       if( (index(LDT_rc%lsm,"RDHM") == 1 .or. &
-            index(LDT_rc%lsm,"SACHTET") == 1 ) .and. &
-            LDT_rc%create_soilparms_option == "create" ) then
+          if( (index(LDT_rc%lsm(k),"RDHM") == 1 .or. &
+               index(LDT_rc%lsm(k),"SACHTET") == 1 ) .and. &
+               LDT_rc%create_soilparms_option == "create" ) then
+             lsmCheck = .true.
+          endif
+       enddo
+       if(lsmCheck) then 
          call LDT_writeNETCDFdata(n,ftn,LDT_soils_struc(n)%texture_nlyrs)
        endif
     endif
