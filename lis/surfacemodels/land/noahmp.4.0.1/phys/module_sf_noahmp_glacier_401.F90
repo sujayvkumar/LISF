@@ -281,8 +281,8 @@ contains
      END IF
 
      IF(MAXVAL(SICE) < 0.0001) THEN
-       WRITE(message,*) "GLACIER HAS MELTED AT:",ILOC,JLOC," ARE YOU SURE THIS SHOULD BE A GLACIER POINT?"
-       CALL wrf_debug(10,TRIM(message))
+!       WRITE(message,*) "GLACIER HAS MELTED AT:",ILOC,JLOC," ARE YOU SURE THIS SHOULD BE A GLACIER POINT?"
+!       CALL wrf_debug(10,TRIM(message))
      END IF
      
 ! water and energy balance check

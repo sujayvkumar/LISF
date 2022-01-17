@@ -59,9 +59,6 @@ module era5_forcingMod
 !  \end{description}
 !
 ! !USES:
-
-  use LIS_constantsMod, only : LIS_CONST_PATH_LEN
-
   implicit none
 
   PRIVATE
@@ -81,11 +78,11 @@ module era5_forcingMod
      integer      :: npts
      real         :: ts
      integer      :: ncold, nrold
-     character(len=LIS_CONST_PATH_LEN) :: era5dir   !ERA5 Forcing Directory
-     character(len=LIS_CONST_PATH_LEN) :: mapfile
+     character*40 :: era5dir   !ERA5 Forcing Directory
+     character*40 :: mapfile
      real*8       :: era5time1,era5time2
      logical      :: reset_flag
-     integer      :: mo1,mo2
+     integer      :: hr1,hr2
 
      integer, allocatable :: G2P(:,:)
      integer                :: mi
@@ -106,27 +103,27 @@ module era5_forcingMod
      integer                :: findtime1, findtime2
      logical                :: startFlag, dayFlag
 
-     real, allocatable      :: tair1(:,:)
-     real, allocatable      :: qair1(:,:)
-     real, allocatable      :: wind1(:,:)
-     real, allocatable      :: ps1(:,:)
-     real, allocatable      :: rainf1(:,:)
-     real, allocatable      :: snowf1(:,:)
-     real, allocatable      :: dirswd1(:,:)
-     real, allocatable      :: difswd1(:,:)
-     real, allocatable      :: swd1(:,:)
-     real, allocatable      :: lwd1(:,:)
+     real, allocatable      :: tair1(:)
+     real, allocatable      :: qair1(:)
+     real, allocatable      :: wind1(:)
+     real, allocatable      :: ps1(:)
+     real, allocatable      :: rainf1(:)
+     real, allocatable      :: snowf1(:)
+     real, allocatable      :: dirswd1(:)
+     real, allocatable      :: difswd1(:)
+     real, allocatable      :: swd1(:)
+     real, allocatable      :: lwd1(:)
 
-     real, allocatable      :: tair2(:,:)
-     real, allocatable      :: qair2(:,:)
-     real, allocatable      :: wind2(:,:)
-     real, allocatable      :: ps2(:,:)
-     real, allocatable      :: rainf2(:,:)
-     real, allocatable      :: snowf2(:,:)
-     real, allocatable      :: dirswd2(:,:)
-     real, allocatable      :: difswd2(:,:)
-     real, allocatable      :: swd2(:,:)
-     real, allocatable      :: lwd2(:,:)
+     real, allocatable      :: tair2(:)
+     real, allocatable      :: qair2(:)
+     real, allocatable      :: wind2(:)
+     real, allocatable      :: ps2(:)
+     real, allocatable      :: rainf2(:)
+     real, allocatable      :: snowf2(:)
+     real, allocatable      :: dirswd2(:)
+     real, allocatable      :: difswd2(:)
+     real, allocatable      :: swd2(:)
+     real, allocatable      :: lwd2(:)
 
      integer            :: nvars
      integer            :: uselml
@@ -200,25 +197,25 @@ contains
        era5_struc(n)%ncold = 1440
        era5_struc(n)%nrold = 720
        era5_struc(n)%npts = 340819
-       era5_struc(n)%mo1 = -1
-       era5_struc(n)%mo2 = -1
+       era5_struc(n)%hr1 = -1
+       era5_struc(n)%hr2 = -1
 
          
-       allocate(era5_struc(n)%tair1(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%qair1(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%wind1(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%ps1(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%rainf1(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%swd1(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%lwd1(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
+       allocate(era5_struc(n)%tair1(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%qair1(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%wind1(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%ps1(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%rainf1(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%swd1(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%lwd1(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
 
-       allocate(era5_struc(n)%tair2(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%qair2(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%wind2(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%ps2(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%rainf2(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%swd2(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
-       allocate(era5_struc(n)%lwd2(LIS_rc%lnc(n)*LIS_rc%lnr(n),745))
+       allocate(era5_struc(n)%tair2(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%qair2(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%wind2(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%ps2(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%rainf2(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%swd2(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
+       allocate(era5_struc(n)%lwd2(LIS_rc%lnc(n)*LIS_rc%lnr(n)))
 
     enddo
 

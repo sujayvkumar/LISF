@@ -1,6 +1,7 @@
 ! PET from Sujay has been added by Shugong 08/31/2021
 MODULE MODULE_SF_NOAHMPLSM_401
 
+  use LIS_coreMod
   use module_sf_gecros_401, only : gecros
 
   IMPLICIT NONE
@@ -390,7 +391,8 @@ contains
                    BGAP    , WGAP    , CHV     , CHB     , EMISSI  ,           & ! OUT :
 		   SHG     , SHC     , SHB     , EVG     , EVB     , GHV     , & ! OUT :
 		   GHB     , IRG     , IRC     , IRB     , TR      , EVC     , & ! OUT :
-                   FGEV_PET, FCEV_PET, FCTR_PET,                       & ! PET code from Sujay 
+                   FGEV_PET, FCEV_PET, FCTR_PET,                       & ! PET code from Sujay
+                   ACOND,   CCOND,   VPD, &
 		   CHLEAF  , CHUC    , CHV2    , CHB2    , FPICE   , PAHV    , &
                    PAHG    , PAHB    , PAH     , LAISUN  , LAISHA  , RB        & ! OUT
                    !ag (05Jan2021)
@@ -588,7 +590,9 @@ contains
   REAL,INTENT(OUT)                                              :: GHB    !ground heat flux [w/m2] [+ to soil]
   REAL,INTENT(OUT)                                              :: EVC    !canopy evap. heat [w/m2]  [+ to atm]
   REAL,INTENT(OUT)                                              :: FGEV_PET, FCEV_PET,FCTR_PET
+  REAL,INTENT(OUT)                                              :: ACOND, CCOND
   REAL,INTENT(OUT)                                              :: TR     !transpiration heat [w/m2] [+ to atm]
+  REAL,INTENT(OUT)                                              :: VPD
   REAL, INTENT(OUT)   :: FPICE   !snow fraction in precipitation
   REAL, INTENT(OUT)   :: PAHV    !precipitation advected heat - vegetation net (W/m2)
   REAL, INTENT(OUT)   :: PAHG    !precipitation advected heat - under canopy net (W/m2)
@@ -768,7 +772,8 @@ contains
                  Q1     ,Q2V    ,Q2B    ,Q2E    ,CHV   ,CHB     , & !out
                  EMISSI ,PAH    ,                                 &
 		 SHG,SHC,SHB,EVG,EVB,GHV,GHB,IRG,IRC,IRB,TR,EVC,CHLEAF,CHUC,CHV2,CHB2,&
-                 FGEV_PET, FCEV_PET, FCTR_PET,                            & ! PET code from Sujay 
+                 FGEV_PET, FCEV_PET, FCTR_PET,                            & ! PET code from Sujay
+                 ACOND, CCOND, VPD, &
                  JULIAN, SWDOWN, PRCP, FB, GECROS1D )        
 !jref:end
 
@@ -1100,8 +1105,12 @@ ENDIF   ! CROPTYPE == 0
      FB = DB / MAX(1.E-06,parameters%HVT-parameters%HVB)
 
      IF(parameters%HVT> 0. .AND. parameters%HVT <= 1.0) THEN          !MB: change to 1.0 and 0.2 to reflect
-       SNOWHC = parameters%HVT*EXP(-SNOWH/0.2)             !      changes to HVT in MPTABLE
-       FB     = MIN(SNOWH,SNOWHC)/SNOWHC
+        SNOWHC = parameters%HVT*EXP(-SNOWH/0.2)             !      changes to HVT in MPTABLE
+        if(SNOWHC>1.E-03) THEN 
+           FB     = MIN(SNOWH,SNOWHC)/SNOWHC
+        ELSE
+           FB = 1.0
+        ENDIF
      ENDIF
 
      ELAI =  LAI*(1.-FB)
@@ -1442,7 +1451,7 @@ ENDIF   ! CROPTYPE == 0
         ERRWAT = END_WB-BEG_WB-(PRCP-ECAN-ETRAN-EDIR-RUNSRF-RUNSUB)*DT
 
 #ifndef WRF_HYDRO
-        IF(ABS(ERRWAT) > 0.1) THEN
+        IF(ABS(ERRWAT) > 1000) THEN
            if (ERRWAT > 0) then
 !              call wrf_message ('The model is gaining water (ERRWAT is positive)')
               print *,&
@@ -1516,7 +1525,8 @@ ENDIF   ! CROPTYPE == 0
                      FSRG   ,RSSUN  ,RSSHA  ,BGAP   ,WGAP,TGV,TGB,&
                      Q1     ,Q2V    ,Q2B    ,Q2E    ,CHV  ,CHB, EMISSI,PAH  ,&
 		     SHG,SHC,SHB,EVG,EVB,GHV,GHB,IRG,IRC,IRB,TR,EVC,CHLEAF,CHUC,CHV2,CHB2, &
-                     FGEV_PET, FCEV_PET, FCTR_PET, & ! PET code from Sujay 
+                     FGEV_PET, FCEV_PET, FCTR_PET, & ! PET code from Sujay
+                     ACOND, CCOND,  VPD, &
                      JULIAN, SWDOWN, PRCP, FB, GECROS1D )        
 !jref:end                            
 
@@ -1769,6 +1779,7 @@ ENDIF   ! CROPTYPE == 0
   REAL,INTENT(OUT)                                  :: CHV2    !sensible heat conductance, canopy air to ZLVL air (m/s)
   REAL,INTENT(OUT)                                  :: CHB2    !sensible heat conductance, canopy air to ZLVL air (m/s)
   REAL,INTENT(OUT)                                 :: FGEV_PET, FCEV_PET,FCTR_PET
+  REAL,INTENT(OUT)                                 :: ACOND, CCOND, VPD
   REAL                                  :: noahmpres
 
   REAL,                INTENT(IN)    :: JULIAN, SWDOWN, PRCP, FB
@@ -1784,6 +1795,10 @@ ENDIF   ! CROPTYPE == 0
   REAL :: TAUXV_T ,TAUYV_T,IRG_T   ,IRC_T   ,SHG_T 
   REAL :: SHC_T   ,EVG_T   ,EVC_T   ,TR_T    ,GHV_T  
   REAL :: T2MV_T  ,PSNSUN_T,PSNSHA_T
+
+  ACOND = 0.0
+  CCOND = 0.0
+  VPD = -9999.0
 ! initialize fluxes from veg. fraction
 
     TAUXV     = 0.    
@@ -1821,7 +1836,7 @@ ENDIF   ! CROPTYPE == 0
 ! ground snow cover fraction [Niu and Yang, 2007, JGR]
 
      FSNO = 0.
-     IF(SNOWH.GT.0.)  THEN
+     IF(SNOWH.GT.0.and.SNEQV.GT.0)  THEN
          BDSNO    = SNEQV / SNOWH
          FMELT    = (BDSNO/100.)**parameters%MFSNO
          FSNO     = TANH( SNOWH /(2.5* Z0 * FMELT))
@@ -2021,7 +2036,8 @@ ENDIF   ! CROPTYPE == 0
 !jref:start
                     QC      ,QSFC    ,PSFC    , & !in
                     Q2V     ,CHV2, CHLEAF, CHUC, &
-                    SH2O,JULIAN, SWDOWN, PRCP, FB, FSR, GECROS1D)      ! Gecros 
+                    SH2O,JULIAN, SWDOWN, PRCP, FB, FSR, GECROS1D, &
+                    ACOND, CCOND, VPD)      ! Gecros 
 !jref:end                            
         
         ! PET code from Sujay 
@@ -2124,9 +2140,9 @@ ENDIF   ! CROPTYPE == 0
 
     IF(FIRE <=0.) THEN
        WRITE(6,*) 'emitted longwave <0; skin T may be wrong due to inconsistent'
-       WRITE(6,*) 'input of SHDFAC with LAI'
+       WRITE(6,*) 'input of SHDFAC with LAI',LIS_localPet
        WRITE(6,*) ILOC, JLOC, 'SHDFAC=',FVEG,'VAI=',VAI,'TV=',TV,'TG=',TG
-       WRITE(6,*) 'LWDN=',LWDN,'FIRA=',FIRA,'SNOWH=',SNOWH
+       WRITE(6,*) 'LWDN=',LWDN,'FIRA=',FIRA,'SNOWH=',SNOWH,'SNEQV=',SNEQV
        call wrf_error_fatal("STOP in Noah-MP")
     END IF
 
@@ -3386,8 +3402,8 @@ ENDIF   ! CROPTYPE == 0
                        T2MV    ,PSNSUN  ,PSNSHA  ,                   & !out
                        QC      ,QSFC    ,PSFC    ,                   & !in
                        Q2V     ,CAH2    ,CHLEAF  ,CHUC,              & !inout 
-                       SH2O,JULIAN, SWDOWN, PRCP, FB, FSR, GECROS1D)      ! Gecros 
-
+                       SH2O,JULIAN, SWDOWN, PRCP, FB, FSR, GECROS1D, &       ! Gecros 
+                       ACOND, CCOND, VPD)
 ! --------------------------------------------------------------------------------------------------
 ! use newton-raphson iteration to solve for vegetation (tv) and
 ! ground (tg) temperatures that balance the surface energy budgets
@@ -3494,6 +3510,10 @@ ENDIF   ! CROPTYPE == 0
   REAL,                           INTENT(OUT) :: CHUC   !under canopy exchange coefficient
 
   REAL,                           INTENT(OUT) :: Q2V
+  REAL,                           INTENT(OUT) :: ACOND
+  REAL,                           INTENT(OUT) :: CCOND
+  REAL,                           INTENT(OUT) :: VPD
+  
   REAL :: CAH    !sensible heat conductance, canopy air to ZLVL air (m/s)
   REAL :: U10V    !10 m wind speed in eastward dir (m/s) 
   REAL :: V10V    !10 m wind speed in eastward dir (m/s) 
@@ -3821,6 +3841,11 @@ ENDIF   ! CROPTYPE == 0
         ENDIF
         CGW  = 1./(RAWG+RSURF)
         COND = CAW + CEW + CTW + CGW
+
+        !SVK: define canopy and aerodynamic conductances
+        CCOND = CEW+CTW+CGW
+        ACOND = CAW
+        
         AEA  = (EAIR*CAW + ESTG*CGW) / COND
         BEA  = (CEW+CTW)/COND
         CEV  = (1.-BEA)*CEW*RHOAIR*CPAIR/GAMMAV   ! Barlage: change to vegetation v3.6
@@ -3839,8 +3864,10 @@ ENDIF   ! CROPTYPE == 0
           EVC = MIN(CANLIQ*LATHEAV/DT,EVC)    ! Barlage: add if block for canice in v3.6
 	ELSE
           EVC = MIN(CANICE*LATHEAV/DT,EVC)
-	END IF
-
+       END IF
+       !SVK: VPD diagnostic
+       VPD  = ESTV - EAH
+ 
         B   = SAV-IRC-SHC-EVC-TR+PAHV                          !additional w/m2
         A   = FVEG*(4.*CIR*TV**3 + CSH + (CEV+CTR)*DESTV) !volumetric heat capacity
         DTV = B/A

@@ -1110,7 +1110,7 @@ contains
              'nf90_inquire_dimension failed for nbins')
         call LIS_verify(nf90_inquire_dimension(nid,nlevsId, len=nlevs_file),&
              'nf90_inquire_dimension failed for nbins')
-        
+
         if(nbins.ne.nbins_file) then 
            write(LIS_logunit,*) '[ERR] The number of bins specified in the file '//&
                 trim(filename)
@@ -1135,7 +1135,7 @@ contains
            call LIS_verify(nf90_get_var(nid,cdfid,cdf_file,&
                 start=(/1,j,1,1/), count=(/ngrid_file,1,nlevs_file,nbins/)),&
                 'nf90_get_var failed for '//trim(varname)//'_CDF')
-        
+
            if(ngrid.gt.0) then 
               do kk=1,nbins
                  call LIS_convertObsVarToLocalSpace(n,k,xrange_file(:,1,kk), &

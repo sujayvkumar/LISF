@@ -11,7 +11,7 @@ public noahmplsm_401
 !
 CONTAINS
 ! The subroutine name has been modifed for LIS implemenation Oct 22 2018
-  SUBROUTINE noahmplsm_401(LIS_undef_value,                                       & ! IN : LIS undefined value
+  SUBROUTINE noahmplsm_401(t,LIS_undef_value,                                       & ! IN : LIS undefined value
              ITIMESTEP,        YR,   JULIAN,   COSZIN,XLAT,XLONG,                 & ! IN : Time/Space-related
                   DZ8W,       DT,       DZS,    NSOIL,       DX,                  & ! IN : Model configuration 
 	        IVGTYP,   ISLTYP,    VEGFRA,   VEGMAX,      TMN,                  & ! IN : Vegetation/Soil characteristics
@@ -44,7 +44,8 @@ CONTAINS
 		BGAPXY,   WGAPXY,    TGVXY,     TGBXY,    CHVXY,     CHBXY, & ! OUT Noah MP only
 		 SHGXY,    SHCXY,    SHBXY,     EVGXY,    EVBXY,     GHVXY, & ! OUT Noah MP only
 		 GHBXY,    IRGXY,    IRCXY,     IRBXY,     TRXY,     EVCXY, & ! OUT Noah MP only
-                 FGEV_PETXY, FCEV_PETXY, FCTR_PETXY,                & ! PET code from Sujay 
+                 FGEV_PETXY, FCEV_PETXY, FCTR_PETXY,                & ! PET code from Sujay
+                 ACONDXY, CCONDXY, VPDXY,  &
               CHLEAFXY,   CHUCXY,   CHV2XY,    CHB2XY, RS, FPICE,           & ! OUT Noah MP only
               parameters, &
 !                 BEXP_3D,SMCDRY_3D,SMCWLT_3D,SMCREF_3D,SMCMAX_3D,          & ! placeholders to activate 3D soil
@@ -72,7 +73,8 @@ CONTAINS
 
 ! IN only
 
-! Added LIS undefined value as an input - David Mocko
+    ! Added LIS undefined value as an input - David Mocko
+    integer, intent(in) :: t
     REAL,    INTENT(IN   ) ::  LIS_undef_value
     INTEGER,                                         INTENT(IN   ) ::  ITIMESTEP ! timestep number
     INTEGER,                                         INTENT(IN   ) ::  YR        ! 4-digit year
@@ -272,6 +274,9 @@ CONTAINS
     REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  FGEV_PETXY
     REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  FCEV_PETXY
     REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  FCTR_PETXY
+    REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  ACONDXY
+    REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  CCONDXY
+    REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  VPDXY    
     REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  CHLEAFXY  ! leaf exchange coefficient 
     REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  CHUCXY    ! under canopy exchange coefficient 
     REAL,    DIMENSION( ims:ime,          jms:jme ), INTENT(OUT  ) ::  CHV2XY    ! veg 2m exchange coefficient 
@@ -415,6 +420,10 @@ CONTAINS
     REAL                                :: FGEV_PET
     REAL                                :: FCEV_PET
     REAL                                :: FCTR_PET
+    REAL                                :: ACOND
+    REAL                                :: CCOND
+    REAL                                :: VPD
+    
     REAL                                :: CHLEAF       ! leaf exchange coefficient 
     REAL                                :: CHUC         ! under canopy exchange coefficient 
     REAL                                :: CHV2         ! veg 2m exchange coefficient 
@@ -864,6 +873,9 @@ CONTAINS
          FGEV_PET = LIS_undef_value
          FCEV_PET = LIS_undef_value
          FCTR_PET = LIS_undef_value
+         ACOND  = LIS_undef_value
+         CCOND  = LIS_undef_value
+         VPD    = LIS_undef_value         
          CHLEAF = LIS_undef_value 
          CHUC   = LIS_undef_value 
          CHV2   = LIS_undef_value 
@@ -878,7 +890,7 @@ CONTAINS
 
          ICE=0                              ! Neither sea ice or land ice.
          CALL NOAHMP_SFLX (parameters, &
-            I       , J       , LAT     , YEARLEN , JULIAN  , COSZ    , & ! IN : Time/Space-related
+            t       , J       , LAT     , YEARLEN , JULIAN  , COSZ    , & ! IN : Time/Space-related
             DT      , DX      , DZ8W1D  , NSOIL   , ZSOIL   , NSNOW   , & ! IN : Model configuration 
             FVEG    , FVGMAX  , VEGTYP  , ICE     , IST     , CROPTYPE, & ! IN : Vegetation/Soil characteristics
             SMCEQ   ,                                                   & ! IN : Vegetation/Soil characteristics
@@ -907,7 +919,8 @@ CONTAINS
             BGAP    , WGAP    , CHV     , CHB     , EMISSI  ,           & ! OUT : 
             SHG     , SHC     , SHB     , EVG     , EVB     , GHV     , & ! OUT :
 	    GHB     , IRG     , IRC     , IRB     , TR      , EVC     , & ! OUT :
-            FGEV_PET, FCEV_PET, FCTR_PET,                          & 
+            FGEV_PET, FCEV_PET, FCTR_PET,                          &
+            ACOND   , CCOND   , VPD     , &
 	    CHLEAF  , CHUC    , CHV2    , CHB2    , FPICE   , PAHV    , & 
             PAHG    , PAHB    , PAH     , LAISUN  , LAISHA  , RB        &
             !ag (05Jan2021)
@@ -1051,6 +1064,9 @@ CONTAINS
              FGEV_PETXY(I,J)               = FGEV_PET
              FCEV_PETXY(I,J)               = FCEV_PET
              FCTR_PETXY(I,J)               = FCTR_PET
+             ACONDXY(I,J)                  = ACOND
+             CCONDXY(I,J)                  = CCOND
+             VPDXY(I,J)                    = VPD             
              CHLEAFXY (I,J)                = CHLEAF
              CHUCXY   (I,J)                = CHUC
              CHV2XY   (I,J)                = CHV2

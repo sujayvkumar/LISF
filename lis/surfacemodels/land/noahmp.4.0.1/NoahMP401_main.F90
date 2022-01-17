@@ -225,6 +225,7 @@ subroutine NoahMP401_main(n)
     real                 :: tmp_tr                 ! transpiration [ to atm] [W/m2]
     real                 :: tmp_evc                ! canopy evaporation heat [to atm] [W/m2]
     real                 :: tmp_fgev_pet, tmp_fcev_pet,tmp_fctr_pet
+    real                 :: tmp_acond, tmp_ccond, tmp_vpd
     real                 :: tmp_chleaf             ! leaf exchange coefficient [-]
     real                 :: tmp_chuc               ! under canopy exchange coefficient [-]
     real                 :: tmp_chv2               ! veg 2m exchange coefficient [-]
@@ -535,6 +536,12 @@ subroutine NoahMP401_main(n)
             tmp_pgs             = NOAHMP401_struc(n)%noahmp401(t)%pgs
             tmp_sfcheadrt       = NoahMP401_struc(n)%noahmp401(t)%sfcheadrt
 
+!            if(LIS_localPet.eq.337.and.t.eq.26793) then
+!               write(101,*) LIS_rc%yr, LIS_rc%mo, LIS_rc%da, &
+!                    LIS_rc%hr, LIS_rc%mn, &
+!                    tmp_lai,tmp_tv,tmp_tg,&
+!                    tmp_sneqv,tmp_snowh               
+!            endif
 ! Calculate water storages at start of timestep
             startsm = 0.0
             do i = 1,tmp_nsoil
@@ -546,7 +553,7 @@ subroutine NoahMP401_main(n)
             startgw  = tmp_wa
 
             ! call model physics
-            call noahmp_driver_401(n                     , & ! in    - nest id [-]
+            call noahmp_driver_401(t                     , & ! in    - nest id [-]
                                    tmp_ttile             , & ! in    - tile id [-]
                                    tmp_itimestep         , & ! in    - timestep number [-]
                                    tmp_latitude          , & ! in    - latitude in decimal degree [rad]
@@ -707,7 +714,8 @@ subroutine NoahMP401_main(n)
                                    tmp_irb               , & ! out   - bare net LW radiation [+ to atm] [W/m2]
                                    tmp_tr                , & ! out   - transpiration [ to atm] [W/m2]
                                    tmp_evc               , & ! out   - canopy evaporation heat [to atm] [W/m2]
-                                   tmp_fgev_pet, tmp_fcev_pet, tmp_fctr_pet, & !PET code from Sujay 
+                                   tmp_fgev_pet, tmp_fcev_pet, tmp_fctr_pet, & !PET code from Sujay
+                                   tmp_acond, tmp_ccond, tmp_vpd,&
                                    tmp_chleaf            , & ! out   - leaf exchange coefficient [-]
                                    tmp_chuc              , & ! out   - under canopy exchange coefficient [-]
                                    tmp_chv2              , & ! out   - veg 2m exchange coefficient [-]
@@ -1249,7 +1257,21 @@ subroutine NoahMP401_main(n)
                   direction="UP",surface_type=LIS_rc%lsm_index)
             call LIS_diagnoseSurfaceOutputVar(n, t, LIS_MOC_POTEVAP, &
                  value=(tmp_fgev_pet+tmp_fcev_pet+tmp_fctr_pet)/LVH2O, vlevel=1,unit="kg m-2 s-1",&
-                  direction="UP",surface_type=LIS_rc%lsm_index)
+                 direction="UP",surface_type=LIS_rc%lsm_index)
+            !CCOND
+            call LIS_diagnoseSurfaceOutputVar(n, t, LIS_MOC_CCOND, &
+                 value=tmp_ccond, vlevel=1,unit="m s-1",&
+                  direction="-",surface_type=LIS_rc%lsm_index)
+
+            !ACOND
+            call LIS_diagnoseSurfaceOutputVar(n, t, LIS_MOC_ACOND, &
+                 value=tmp_acond, vlevel=1,unit="m s-1",&
+                  direction="-",surface_type=LIS_rc%lsm_index)
+
+            !ACOND
+            call LIS_diagnoseSurfaceOutputVar(n, t, LIS_MOC_VPD, &
+                 value=tmp_vpd, vlevel=1,unit="Pa",&
+                  direction="-",surface_type=LIS_rc%lsm_index)            
 
             ![ 89] output variable: rainf (unit=kg/m2). ***  precipitation rate
             call LIS_diagnoseSurfaceOutputVar(n, t, LIS_MOC_RAINF, value = NOAHMP401_struc(n)%noahmp401(t)%rainf, &

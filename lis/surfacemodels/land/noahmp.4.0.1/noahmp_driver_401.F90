@@ -48,7 +48,8 @@ subroutine noahmp_driver_401(n, ttile, itimestep, &
      bgap    , wgap    , tgb     , tgv     , chv     , chb     , & ! out Noah MP only
      shg     , shc     , shb     , evg     , evb     , ghv     , & ! out Noah MP only
      ghb     , irg     , irc     , irb     , tr      , evc     , & ! out Noah MP only
-     fgev_pet, fcev_pet, fctr_pet,                               & ! PET 
+     fgev_pet, fcev_pet, fctr_pet,                               & ! PET
+     acond   , ccond,  vpd,                                      &
      chleaf  , chuc    , chv2    , chb2    , relsmc,             &
      !ag (12Sep2019)
      rivsto, fldsto, fldfrc,&
@@ -250,6 +251,9 @@ subroutine noahmp_driver_401(n, ttile, itimestep, &
   real, intent(out) :: fgev_pet
   real, intent(out) :: fcev_pet
   real, intent(out) :: fctr_pet
+  real, intent(out) :: acond
+  real, intent(out) :: ccond
+  real, intent(out) :: vpd  
   real, intent(out) :: chleaf                 ! leaf exchange coefficient
   real, intent(out) :: chuc                   ! under canopy exchange coefficient 
   real, intent(out) :: chv2                   ! veg 2m exchange coefficient
@@ -458,6 +462,9 @@ subroutine noahmp_driver_401(n, ttile, itimestep, &
   real, dimension(1,1) :: fgev_petout
   real, dimension(1,1) :: fcev_petout
   real, dimension(1,1) :: fctr_petout
+  real, dimension(1,1) :: acondout
+  real, dimension(1,1) :: ccondout
+  real, dimension(1,1) :: vpdout
   real, dimension(1,1) :: chleafout
   real, dimension(1,1) :: chucout
   real, dimension(1,1) :: chv2out
@@ -720,6 +727,9 @@ subroutine noahmp_driver_401(n, ttile, itimestep, &
   fgev_petout(1,1) = fgev_pet
   fcev_petout(1,1) = fcev_pet
   fctr_petout(1,1) = fctr_pet
+  acondout(1,1) = acond
+  ccondout(1,1) = ccond
+  vpdout(1,1) = vpd  
   chleafout(1,1) = chleaf
   chucout(1,1)  = chuc
   chv2out(1,1)  = chv2
@@ -741,7 +751,7 @@ subroutine noahmp_driver_401(n, ttile, itimestep, &
   fldfrcin(1,1)=fldfrc
 
 
-  call noahmplsm_401  (LIS_rc%udef,  & ! in : LIS undefined value (David Mocko)
+  call noahmplsm_401  (n,LIS_rc%udef,  & ! in : LIS undefined value (David Mocko)
        itimestep,yearlen , julian  , coszin    , latin   , lonin  , & ! in : time/space-related
        dz8w3d(1), dt      , zsoil   , nsoil   , dx      ,           & ! in : model configuration 
        vegetypein, soiltypein, vegfrain, vegmaxin, tbotin  ,        & ! in : Vegetation/Soil characteristics
@@ -778,7 +788,8 @@ subroutine noahmp_driver_401(n, ttile, itimestep, &
        bgapout , wgapout , tgvout  , tgbout  , chvout  , chbout  , & ! out Noah MP only
        shgout  , shcout  , shbout  , evgout  , evbout  , ghvout  , & ! out Noah MP only
        ghbout  , irgout  , ircout  , irbout  , trout   , evcout  , & ! out Noah MP only
-       fgev_petout, fcev_petout, fctr_petout,                      & ! PET 
+       fgev_petout, fcev_petout, fctr_petout,                      & ! PET
+       acondout,  ccondout, vpdout,   & 
        chleafout  , chucout , chv2out , chb2out , rsout , fpice  , & ! out Noah MP only
        parameters, &
        rivstoin,fldstoin,fldfrcin,                                 &
@@ -909,7 +920,9 @@ subroutine noahmp_driver_401(n, ttile, itimestep, &
   fgev_pet = fgev_petout(1,1)      ! 08/30/2021 Shugong 
   fcev_pet = fcev_petout(1,1)
   fctr_pet = fctr_petout(1,1)
-
+  acond = acondout(1,1)
+  ccond = ccondout(1,1)
+  vpd = vpdout(1,1)  
 #ifndef WRF_HYDRO
   INFXSRT  = 0.0
   soldrain = 0.0
