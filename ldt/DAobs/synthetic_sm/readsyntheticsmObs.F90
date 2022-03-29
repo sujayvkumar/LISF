@@ -22,11 +22,13 @@ subroutine readsyntheticsmObs(n)
   use ESMF
   use LDT_coreMod,      only : LDT_rc
   use LDT_timeMgrMod,   only : LDT_get_julss
-  use LDT_logMod,       only : LDT_logunit, LDT_getNextUnitNumber, &
-       LDT_releaseUnitNumber
+  use LDT_logMod
   use LDT_DAobsDataMod
   use syntheticsm_obsMod, only : syntheticsmobs
   use map_utils
+#if(defined USE_NETCDF3 || defined USE_NETCDF4)
+  use netcdf
+#endif
 
   implicit none
 ! !ARGUMENTS: 
@@ -44,8 +46,9 @@ subroutine readsyntheticsmObs(n)
   logical           :: file_exists
   integer           :: c,r,i,j
   integer           :: ftn
+  integer           :: ios,smid
   character*100     :: fname
-  real              :: smobs(LDT_rc%lnc(n)*LDT_rc%lnr(n))
+  real              :: smobs(LDT_rc%lnc(n),LDT_rc%lnr(n))
 
 !-----------------------------------------------------------------------
 ! It is assumed that CDF is computed using daily observations. 
@@ -66,18 +69,32 @@ subroutine readsyntheticsmObs(n)
 
      inquire(file=trim(fname),exist=file_exists)
      if(file_exists) then
+        write(LDT_logunit,*) 'Reading .. ',trim(fname)
+#if(defined USE_NETCDF3 || defined USE_NETCDF4)
+        ios = nf90_open(path=trim(fname),mode=NF90_NOWRITE,ncid=ftn)
+        call LDT_verify(ios,'Error opening file '//trim(fname))
+                
+        ios = nf90_inq_varid(ftn, 'SoilMoist_tavg',smid)
+        call LDT_verify(ios, 'Error nf90_inq_varid: sm')
+                
+        ios = nf90_get_var(ftn, smid, smobs)
+        call LDT_verify(ios, 'Error nf90_get_var: sm')
+        
+        ios = nf90_close(ncid=ftn)
+        call LDT_verify(ios,'Error closing file '//trim(fname))
+#endif        
 
-        write(LDT_logunit,*) 'Reading ..',trim(fname)
-        ftn = LDT_getNextUnitNumber()
-        open(ftn,file=trim(fname),form='unformatted')
-        read(ftn) smobs
-        call LDT_releaseUnitNumber(ftn)
+
+!        ftn = LDT_getNextUnitNumber()
+!        open(ftn,file=trim(fname),form='unformatted')
+!        read(ftn) smobs
+!        call LDT_releaseUnitNumber(ftn)
      endif
 
      do r=1,LDT_rc%lnr(n)
         do c=1,LDT_rc%lnc(n)
-           if(smobs(c+(r-1)*LDT_rc%lnc(n)).ne.-9999.0) then 
-              syntheticsmobs(n)%smobs(c,r) = smobs(c+(r-1)*LDT_rc%lnc(n))
+           if(smobs(c,r).ne.-9999.0) then 
+              syntheticsmobs(n)%smobs(c,r) = smobs(c,r)
            endif
         enddo
      enddo
@@ -122,7 +139,7 @@ subroutine create_syntheticsm_filename(ndir, yr, mo,da, filename)
   write(unit=fmo, fmt='(i2.2)') mo
   write(unit=fda, fmt='(i2.2)') da
  
-  filename = trim(ndir)//'/SOILM_' &
-       //trim(fyr)//trim(fmo)//trim(fda)//'0000.bin'
+  filename = trim(ndir)//'/'//trim(fyr)//trim(fmo)//'/SimObs_'//&
+       trim(fyr)//trim(fmo)//trim(fda)//'0000.nc'
   
 end subroutine create_syntheticsm_filename
