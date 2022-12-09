@@ -142,7 +142,7 @@ subroutine read_syntheticsmobs(n, k, OBS_State, OBS_Pert_state)
      call LIS_checkForValidObs(n, k,obsl,fnd,sm_current)
      
      if(LIS_rc%dascaloption(k).eq."CDF matching".and.fnd.eq.1) then  
-               
+
         call LIS_rescale_with_CDF_matching(    &
              n,                                   & 
              k,                                   & 

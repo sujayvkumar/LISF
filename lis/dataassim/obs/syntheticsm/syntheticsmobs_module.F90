@@ -44,7 +44,7 @@ module syntheticsmobs_module
      real,    allocatable       :: obs_mu(:,:)
      real,    allocatable       :: model_sigma(:,:)
      real,    allocatable       :: obs_sigma(:,:)
-
+     integer                :: useSsdevScal
      integer                :: nbins
      integer                :: ntimes
      integer                :: ngrid
@@ -93,7 +93,7 @@ contains
     type(ESMF_ArraySpec)   ::  pertArrSpec
     character*100          ::  synsmobsdir
     character*100          ::  temp
-    integer                ::  ftn,i,t
+    integer                ::  ftn,i,t,jj
     real,  allocatable         ::  obsstd(:)
     character*1            ::  vid(2)
     character*40, allocatable  ::  vname(:)
@@ -155,6 +155,14 @@ contains
           call LIS_verify(status, "Synthetic soil moisture number of bins in the CDF: not defined")
        endif
     enddo
+
+    call ESMF_ConfigFindLabel(LIS_config, "Synthetic soil moisture use scaled standard deviation model:", rc=status)
+    do n=1, LIS_rc%nnest
+       if(LIS_rc%dascaloption(k).ne."none") then 
+          call ESMF_ConfigGetAttribute(LIS_config,synthetic_sm_struc(n)%useSsdevScal, rc=status)
+          call LIS_verify(status, "Synthetic soil moisture use scaled standard deviation model: not defined")
+       endif
+    enddo    
 
     do n=1,LIS_rc%nnest
 
@@ -344,15 +352,26 @@ contains
                "SoilMoist",&
                synthetic_sm_struc(n)%obs_xrange,&
                synthetic_sm_struc(n)%obs_cdf)
-!          do t=1,synthetic_sm_struc(n)%ngrid
-!             if(synthetic_sm_struc(n)%obs_sigma(t).ne.LIS_rc%udef) then 
-!                ssdev(t) = ssdev(t)*synthetic_sm_struc(n)%model_sigma(t)/&
-!                     synthetic_sm_struc(n)%obs_sigma(t)
-!             endif
-!          enddo
+
+          if(synthetic_sm_struc(n)%useSsdevScal.eq.1) then 
+             if(synthetic_sm_struc(n)%ntimes.eq.1) then 
+                jj = 1
+             else
+                jj = LIS_rc%mo
+             endif
+             do t=1,LIS_rc%obs_ngrid(k)
+                if(synthetic_sm_struc(n)%obs_sigma(t,jj).gt.0) then 
+                   ssdev(t) = ssdev(t)*synthetic_sm_struc(n)%model_sigma(t,jj)/&
+                        synthetic_sm_struc(n)%obs_sigma(t,jj)
+!                   if(ssdev(t).lt.minssdev) then 
+!                      ssdev(t) = minssdev
+!                   endif
+                endif
+             enddo
+          endif
        else
           synthetic_sm_struc(n)%ngrid = LIS_rc%obs_ngrid(k)
-
+          
        endif
 
        if(synthetic_sm_struc(n)%ngrid.gt.0) then 
