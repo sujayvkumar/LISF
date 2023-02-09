@@ -280,6 +280,10 @@ subroutine LIS_metforcing_plugin
    use AWAP_forcingMod
 #endif
 
+#if ( defined MF_CRMMSCRB)
+   use CRMMScrb_forcingMod
+#endif
+   
 #if ( defined MF_AWRAL)
    use AWRAL_forcingMod
 #endif
@@ -614,6 +618,13 @@ subroutine LIS_metforcing_plugin
    external finalize_AWAP
 #endif
 
+#if ( defined MF_CRMMSCRB )
+   external get_CRMMScrb
+   external timeinterp_CRMMScrb
+   external reset_CRMMScrb
+   external finalize_CRMMScrb
+#endif
+   
 #if ( defined MF_AWRAL )
    external get_AWRAL
    external timeinterp_AWRAL
@@ -1127,6 +1138,15 @@ subroutine LIS_metforcing_plugin
    call registerfinalmetforc(trim(LIS_AWAPforcId)//char(0),finalize_AWAP)
 #endif
 
+#if ( defined MF_CRMMSCRB)
+   call registerinitmetforc(trim(LIS_CRMMScrbforcId)//char(0),init_CRMMScrb)
+   call registerretrievemetforc(trim(LIS_CRMMScrbforcId)//char(0),get_CRMMScrb)
+   call registertimeinterpmetforc(trim(LIS_CRMMScrbforcId)//char(0), &
+                                  timeinterp_CRMMScrb)
+   call registerresetmetforc(trim(LIS_CRMMScrbforcId)//char(0),reset_CRMMScrb)
+   call registerfinalmetforc(trim(LIS_CRMMScrbforcId)//char(0),finalize_CRMMScrb)
+#endif
+   
 #if ( defined MF_AWRAL)
    call registerinitmetforc(trim(LIS_AWRALforcId)//char(0),init_AWRAL)
    call registerretrievemetforc(trim(LIS_AWRALforcId)//char(0),get_AWRAL)
