@@ -39,6 +39,12 @@ subroutine readcrd_CRMMScrb()
      call ESMF_ConfigGetAttribute(LIS_config,CRMMScrb_struc(n)%CRMMScrbdir,rc=rc)
   enddo
 
+  call ESMF_ConfigFindLabel(LIS_config,"CRMMS met forcing mask file:",rc=rc)
+  call LIS_verify(rc, 'CRMMS met forcing mask file: not defined')
+  do n=1,LIS_rc%nnest    
+     call ESMF_ConfigGetAttribute(LIS_config,CRMMScrb_struc(n)%maskfile,rc=rc)
+  enddo
+
 
   write(unit=LIS_logunit,fmt=*)'[INFO] Using CRMMS met forcing'
 

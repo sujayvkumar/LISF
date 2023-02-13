@@ -7,6 +7,7 @@
 ! Administrator of the National Aeronautics and Space Administration.
 ! All Rights Reserved.
 !-------------------------END NOTICE -- DO NOT EDIT-----------------------
+#include "LIS_misc.h"
 module CRMMScrb_forcingMod
 !BOP
 ! !MODULE: CRMMScrb_forcingMod
@@ -22,6 +23,10 @@ module CRMMScrb_forcingMod
 !
 ! !USES: 
   use LIS_constantsMod, only : LIS_CONST_PATH_LEN
+#if ( defined USE_NETCDF3 || defined USE_NETCDF4 )
+  use netcdf
+#endif
+  
   implicit none
 
   PRIVATE
@@ -50,7 +55,8 @@ module CRMMScrb_forcingMod
      
      real, allocatable :: metdata1(:,:) 
      real, allocatable :: metdata2(:,:)
-
+     character*100     :: maskfile
+     real, allocatable :: mask(:,:)
 
   end type CRMMScrb_type_dec
 
@@ -69,6 +75,7 @@ contains
   subroutine init_CRMMScrb(findex)
 ! !USES: 
     use LIS_coreMod
+    use LIS_logMod
     use LIS_timeMgrMod
 
     implicit none
@@ -98,6 +105,8 @@ contains
 !EOP
     
     integer :: n
+    integer :: ftn,maskid
+    logical :: file_exists
     real                   :: gridDesci(50)
     
     
@@ -170,7 +179,27 @@ contains
                LIS_rc%lnc(n)*LIS_rc%lnr(n), &
                CRMMScrb_struc(n)%n111)
 
-       endif       
+       endif
+
+       allocate(CRMMScrb_struc(n)%mask(CRMMScrb_struc(n)%ncol,&
+            CRMMScrb_struc(n)%nrow))
+#if ( defined USE_NETCDF3 || defined USE_NETCDF4 )
+       inquire (file=trim(CRMMScrb_struc(n)%maskfile), exist=file_exists)
+       if (file_exists) then      
+          call LIS_verify(nf90_open(path=trim(CRMMScrb_struc(n)%maskfile),&
+               mode=NF90_NOWRITE, &
+               ncid = ftn), 'nf90_open failed init_CRMMScrb')
+          call LIS_verify(nf90_inq_varid(ftn,'CRMMS_mask',maskId),&
+               'nf90_inq_varid failed for CRMMS_mask in init_CRMMScrb')
+          
+          call LIS_verify(nf90_get_var(ftn,maskid,CRMMScrb_struc(n)%mask),&
+          'nf90_get_var failed for CRMMS_mask in init_CRMMScrb')
+          call LIS_verify(nf90_close(ftn))
+          
+       else
+          CRMMScrb_struc(n)%mask = -9999.0
+       endif
+#endif       
     enddo
 
   end subroutine init_CRMMScrb

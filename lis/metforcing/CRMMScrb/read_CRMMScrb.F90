@@ -162,9 +162,13 @@ subroutine interp_CRMMScrb (n, findex,  vindex, var_in, lis_gds, &
 
   do r=1,CRMMScrb_struc(n)%nrow
      do c=1,CRMMScrb_struc(n)%ncol
-        var1d(c+(r-1)*CRMMScrb_struc(n)%ncol) = &
-             var_in(c,r)
-        if(var_in(c,r).ne.-9999.0) then
+        if(CRMMScrb_struc(n)%mask(c,r).eq.1) then 
+           var1d(c+(r-1)*CRMMScrb_struc(n)%ncol) = &
+                var_in(c,r)
+        else
+           var1d(c+(r-1)*CRMMScrb_struc(n)%ncol) = -9999.0
+        endif
+        if(var1d(c+(r-1)*CRMMScrb_struc(n)%ncol).ne.-9999.0) then 
            lb(c+(r-1)*CRMMScrb_struc(n)%ncol) = .true.
         endif
      enddo
