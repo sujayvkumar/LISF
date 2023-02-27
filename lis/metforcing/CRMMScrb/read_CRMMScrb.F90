@@ -71,6 +71,7 @@ subroutine read_CRMMScrb(n, fname, findex, order, tindex,ferror)
           start=(/1,1,tindex/),&
           count=(/CRMMScrb_struc(n)%ncol,CRMMScrb_struc(n)%nrow,1/)),&
           'nf90_get_var failed for precip in read_CRMMScrb')
+     call LIS_verify(nf90_close(ftn))
      
      call interp_CRMMScrb( n, findex, 1, t2in, LIS_rc%gridDesc(n,:), &
           LIS_rc%lnc(n), LIS_rc%lnr(n), t2out )
