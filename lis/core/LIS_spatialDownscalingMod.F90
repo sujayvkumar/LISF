@@ -71,13 +71,14 @@ contains
 !  14 Nov 2003: Sujay Kumar; Adopted in LIS
 !
 ! !INTERFACE:
-  subroutine LIS_lapseRateCorrection(nest, modelelev, LIS_FORC_Base_State)
+  subroutine LIS_lapseRateCorrection(nest, modelelev, lapseRate, LIS_FORC_Base_State)
 ! !USES:
     
     implicit none
 ! !ARGUMENTS: 
     integer, intent(in) :: nest
     real                :: modelelev(LIS_rc%ngrid(nest))
+    real                :: lapseRate(LIS_rc%ngrid(nest))
     type(ESMF_State)    :: LIS_FORC_Base_State
 
 ! !DESCRIPTION:
@@ -116,7 +117,7 @@ contains
     real, pointer      :: tmp(:),q2(:),lwd(:),psurf(:)
     
     rdry = 287.
-    lapse = -0.0065
+!    lapse = -0.0065
     
     call ESMF_StateGet(LIS_FORC_Base_State,&
          trim(LIS_FORC_Tair%varname(1)),tmpField,&
@@ -155,12 +156,13 @@ contains
     
 
     do t=1,LIS_rc%ntiles(nest)
-       if(tmp(t).gt.0) then 
+       if(tmp(t).gt.0) then
           force_tmp = tmp(t)
           force_hum = q2(t)
           force_lwd = lwd(t)
           force_prs = psurf(t)
           index = LIS_domain(nest)%tile(t)%index
+          lapse = lapseRate(index)
           elevdiff = LIS_domain(nest)%tile(t)%elev-&
                modelelev(index)
           tcforce=force_tmp+(lapse*elevdiff)

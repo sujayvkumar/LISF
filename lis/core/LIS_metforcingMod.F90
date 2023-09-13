@@ -95,6 +95,7 @@ module LIS_metforcingMod
 
   type, public :: forc_dec_type
      real, allocatable :: modelelev(:)
+     real, allocatable :: lapseRate(:)
   end type forc_dec_type
 
 !BOP
@@ -168,6 +169,10 @@ contains
                 write(LIS_logunit,*) "[INFO] Elevation correction turned on for:  ",&
                 trim(LIS_rc%metforc(m))
                 allocate(LIS_forc(n,m)%modelelev(LIS_rc%ngrid(n)))
+                allocate(LIS_forc(n,m)%lapseRate(LIS_rc%ngrid(n)))
+
+                !initialized to the uniform value
+                LIS_forc(n,m)%lapseRate = -0.0065
              endif
           enddo
        enddo
@@ -1101,7 +1106,9 @@ contains
                 call LIS_endrun
              endif
 
-             call LIS_lapseRateCorrection(n,LIS_forc(n,m)%modelelev,&
+             call LIS_lapseRateCorrection(n,&
+                  LIS_forc(n,m)%modelelev,&
+                  LIS_forc(n,m)%lapseRate,&
                   LIS_FORC_Base_State(n,m))
 
           elseif(LIS_rc%met_ecor(m).eq."slope-aspect") then 
@@ -1129,7 +1136,9 @@ contains
                 call LIS_endrun
              endif
 
-             call LIS_lapseRateCorrection(n, LIS_forc(n,m)%modelelev,&
+             call LIS_lapseRateCorrection(n, &
+                  LIS_forc(n,m)%modelelev,&
+                  LIS_forc(n,m)%lapseRate,&
                   LIS_FORC_Base_State(n,m))
              call LIS_slopeAspectCorrection(n, LIS_FORC_Base_State(n,m))
 

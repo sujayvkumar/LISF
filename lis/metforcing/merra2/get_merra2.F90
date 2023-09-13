@@ -174,6 +174,9 @@ subroutine get_merra2(n, findex)
   integer           :: hr_int1, hr_int2
   integer           :: movetime  ! Flag to move bookend2 files to bookend1
 
+  character(len=LIS_CONST_PATH_LEN) :: lapseratefname
+  character*8                       :: fdate
+  
 ! _________________________________________________________
 
 ! Please note that the timing logic has been tested only for
@@ -307,8 +310,14 @@ subroutine get_merra2(n, findex)
      do kk= merra2_struc(n)%st_iterid, merra2_struc(n)%en_iterid
         call merra2files(n,kk,findex,merra2_struc(n)%merra2dir, yr1, mo1, da1, &
              slvname, flxname, lfoname, radname)
+
+        write(unit=fdate, fmt='(i4.4,i2.2,i2.2)') yr1,mo1,da1
+        lapseratefname = trim(merra2_struc(n)%dynlapseratedir)//&
+             '/MERRA2.lapse_rate.hourly.'//&
+             trim(fdate)//'.global.nc'
+        
         call read_merra2(n, order, mo1, &
-             findex, slvname, flxname, lfoname, radname,&
+             findex, slvname, flxname, lfoname, radname, lapseratefname,&
              merra2_struc(n)%merraforc1(kk,:,:,:), ferror)
      enddo
   endif
@@ -325,8 +334,15 @@ subroutine get_merra2(n, findex)
      do kk= merra2_struc(n)%st_iterid, merra2_struc(n)%en_iterid
         call merra2files(n,kk,findex,merra2_struc(n)%merra2dir, yr2, mo2, da2, &
              slvname, flxname, lfoname, radname)
+
+        write(unit=fdate, fmt='(i4.4,i2.2,i2.2)') yr2,mo2,da2
+        lapseratefname = trim(merra2_struc(n)%dynlapseratedir)//&
+             '/MERRA2.lapse_rate.hourly.'//&
+             trim(fdate)//'.global.nc'
+        
+        
         call read_merra2(n, order, mo2,&
-             findex, slvname, flxname, lfoname, radname, &
+             findex, slvname, flxname, lfoname, radname, lapseratefname,&
              merra2_struc(n)%merraforc2(kk,:,:,:), ferror)
      enddo
   endif

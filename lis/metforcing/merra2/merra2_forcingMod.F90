@@ -125,6 +125,10 @@ module merra2_forcingMod
      real, allocatable       :: merraxrange(:,:,:,:)
      real, allocatable       :: merracdf(:,:,:,:)
      integer, allocatable    :: rseed(:,:)
+
+     integer                 :: usedynlapserate
+     character(len=LIS_CONST_PATH_LEN) :: dynlapseratedir
+     
   end type merra2_type_dec
 
   type(merra2_type_dec), allocatable :: merra2_struc(:)
