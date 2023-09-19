@@ -163,6 +163,7 @@ contains
           force_prs = psurf(t)
           index = LIS_domain(nest)%tile(t)%index
           lapse = lapseRate(index)
+
           elevdiff = LIS_domain(nest)%tile(t)%elev-&
                modelelev(index)
           tcforce=force_tmp+(lapse*elevdiff)

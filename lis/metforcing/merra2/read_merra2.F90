@@ -225,6 +225,8 @@ subroutine read_merra2(n, order, month, findex,  &
      call interp_merra2_var(n,findex,month,vwind, 6, .false., merraforc)
      call interp_merra2_var(n,findex,month,ps,    7, .false., merraforc)
 
+     LIS_forc(n,findex)%lapseRate(:) = -0.0065
+     
      if(merra2_struc(n)%usedynlapserate.eq.1) then
         
         inquire(file=trim(lapseratefname),exist=file_exists)
@@ -255,10 +257,11 @@ subroutine read_merra2(n, order, month, findex,  &
            do r=1,LIS_rc%lnr(n)
               do c=1,LIS_rc%lnc(n)
                  if(LIS_domain(n)%gindex(c,r).ne.-1) then
-
-                    gid = LIS_domain(n)%gindex(c,r)                    
-                    LIS_forc(n,findex)%lapseRate(gid) = &
-                         lapse_rate_out(c+(r-1)*LIS_rc%lnc(n))/1000.0
+                    if(.not.isNaN(lapse_rate_out(c+(r-1)*LIS_rc%lnc(n)))) then 
+                       gid = LIS_domain(n)%gindex(c,r)                    
+                       LIS_forc(n,findex)%lapseRate(gid) = &
+                            lapse_rate_out(c+(r-1)*LIS_rc%lnc(n))/1000.0
+                    endif
                  endif
               enddo
            enddo
