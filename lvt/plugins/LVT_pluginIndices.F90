@@ -178,6 +178,7 @@ module LVT_pluginIndices
    character*50, public,  parameter :: LVT_FMISWEobsId        = "FMI SWE"
    character*50, public,  parameter :: LVT_CMCSNWDobsId       = "CMC"
    character*50, public,  parameter :: LVT_SNODASobsId        = "SNODAS"
+   character*50, public,  parameter :: LVT_WUS_UCLAsnowobsId  = "WUS UCLA snow"
    character*50, public,  parameter :: LVT_NASAAMSREsmobsId   = "AMSR-E NASA soil moisture"
    character*50, public,  parameter :: LVT_LPRMAMSREsmobsId   = "AMSR-E LPRM soil moisture"
    character*50, public,  parameter :: LVT_AMMAobsId          = "AMMA"

@@ -89,6 +89,7 @@ contains
     use FMISWE_obsMod,          only : FMISWE_obsInit
     use CMCSNWD_obsMod,         only : CMCSNWD_obsInit
     use SNODAS_obsMod,          only : SNODAS_obsInit
+    use WUS_UCLA_obsMod,        only : WUS_UCLA_obsInit
     use NASA_AMSREsm_obsMod,    only : NASA_AMSREsm_obsInit
     use LPRM_AMSREsm_obsMod,    only : LPRM_AMSREsm_obsInit
     use Ameriflux_obsMod,       only : Ameriflux_obsInit
@@ -201,6 +202,7 @@ contains
     external readFMISWEobs
     external readCMC_SNWDobs
     external readSNODASobs
+    external readWUS_UCLAobs
     external readNASA_AMSREsmObs
     external readLPRM_AMSREsmObs
     external readAmerifluxObs
@@ -351,6 +353,9 @@ contains
 
     call registerobssetup(trim(LVT_SNODASobsId)//char(0), SNODAS_obsinit)
     call registerobsread(trim(LVT_SNODASobsId)//char(0),readSNODASobs)
+
+    call registerobssetup(trim(LVT_WUS_UCLAsnowobsId)//char(0), WUS_UCLA_obsinit)
+    call registerobsread(trim(LVT_WUS_UCLAsnowobsId)//char(0),readWUS_UCLAobs)
 
     call registerobssetup(trim(LVT_NASAAMSREsmobsId)//char(0), &
          NASA_AMSREsm_obsinit)
