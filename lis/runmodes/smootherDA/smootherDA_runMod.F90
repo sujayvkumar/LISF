@@ -177,6 +177,8 @@ contains
           call LIS_routing_readrestart
           call LIS_perturb_readrestart 
 
+          call LIS_moveClockBackByASingleday(LIS_rc)
+          
           LIS_rc%iterationId(:) = LIS_rc%iterationId(:) + 1
        endif
     enddo

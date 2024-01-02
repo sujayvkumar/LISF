@@ -908,6 +908,8 @@ contains
 
     SNOWNG = .FALSE.
 
+    FRZGRA = .FALSE.
+    
     FFROZP = 0.0
     IF (PRCP .GT. 0.0) THEN
        IF (SFCTMP .LT. T0) THEN

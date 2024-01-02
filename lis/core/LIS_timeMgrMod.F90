@@ -66,6 +66,8 @@ module LIS_timeMgrMod
   PUBLIC :: LIS_resetClockForTimeWindow
   PUBLIC :: LIS_mon3char
 
+  PUBLIC :: LIS_moveClockBackByAsingleDay
+
   PUBLIC :: LIS_twStartTime
   PUBLIC :: LIS_twStopTime
   PUBLIC :: LIS_twMidTime
@@ -451,6 +453,50 @@ contains
   end subroutine LIS_resetClockForTimeWindow
 
 
+  subroutine LIS_moveClockBackByAsingleDay(LIS_rc)
+
+    implicit none
+    type(lisrcdec) :: LIS_rc
+
+    type(ESMF_Time)         :: currTime, startTime
+    integer                 :: yr,mo,da,hr,mn,ss,ms
+    integer                 :: status
+    integer                 :: doy
+    real*8                  :: time
+    real                    :: gmt
+    
+    ms  = 0
+    
+    call ESMF_ClockGet(LIS_clock, currTime=currTime, &
+         startTime = startTime, rc=status)
+
+    call ESMF_TimeGet(currTime, yy = yr, &
+            mm = mo, &
+            dd = da, &
+            h  = hr, &
+            m  = mn,& 
+            s  = ss, & 
+            calendar = LIS_calendar, & 
+            rc = status)
+
+    call LIS_tick(time,doy,gmt,yr,mo,da, &
+         hr,mn,ss,-86400.0)
+
+    call ESMF_TimeSet(currTime, yy = yr, &
+            mm = mo, &
+            dd = da, &
+            h  = hr, &
+            m  = mn,& 
+            s  = ss, & 
+            calendar = LIS_calendar, & 
+            rc = status)
+    
+    if(currTime.ge.startTime) then 
+       call LIS_timemgr_set(LIS_rc,yr,mo,da,hr,mn,ss,ms,0.0)
+    endif
+    
+  end subroutine LIS_moveClockBackByAsingleDay
+  
 !BOP
 ! !ROUTINE: LIS_resetclock
 ! \label{LIS_resetclock}
