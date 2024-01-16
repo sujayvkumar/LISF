@@ -225,6 +225,11 @@ subroutine LIS_DAobs_plugin
    use GCOMW_AMSR2L3SND_Mod,    only : GCOMW_AMSR2L3SND_setup
 #endif
 
+#if ( defined DA_OBS_AMSRCNNSND )
+   use AMSRcnnSnowMod,    only : AMSRcnnSnow_setup
+#endif
+   
+   
 #if ( defined DA_OBS_SMOS_NESDIS )
    use SMOSNESDISsm_Mod,        only : SMOSNESDISsm_setup
 #endif
@@ -422,6 +427,10 @@ subroutine LIS_DAobs_plugin
 #if ( defined DA_OBS_GCOMW_AMSR2L3SND )
    external read_GCOMW_AMSR2L3SND,  write_GCOMW_AMSR2L3sndobs
 #endif
+
+#if ( defined DA_OBS_AMSRCNNSND )
+   external read_AMSRcnnSnow,  write_AMSRcnnSnow
+#endif   
 
 #if ( defined DA_OBS_HYDROWEBWL )
     external read_hydrowebWLobs, write_hydrowebWLobs
@@ -664,6 +673,16 @@ subroutine LIS_DAobs_plugin
         write_GCOMW_AMSR2L3sndobs)
 #endif
 
+#if ( defined DA_OBS_AMSRCNNSND )
+   call registerdaobsclass(trim(LIS_AMSRcnnSnowobsId),"LSM")
+   call registerdaobssetup(trim(LIS_AMSRcnnSnowobsId)//char(0), &
+        AMSRcnnSnow_setup)
+   call registerreaddaobs(trim(LIS_AMSRcnnSnowobsId)//char(0),  &
+        read_AMSRcnnSnow)
+   call registerwritedaobs(trim(LIS_AMSRcnnSnowobsId)//char(0), &
+        write_AMSRcnnSnow)
+#endif
+   
 #if ( defined DA_OBS_ANSA_SNWD )
 !ANSA SNWD snow obs 
    call registerdaobsclass(trim(LIS_ANSASNWDsnowobsId),"LSM")

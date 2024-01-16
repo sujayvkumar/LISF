@@ -248,6 +248,7 @@ module LIS_pluginIndices
    character*50, public,  parameter :: LIS_AMSREsweobsId       = "AMSR-E SWE"
 !   character*50, public,  parameter :: LIS_AMSREsnowobsId      = "AMSR-E snow" !yliu
    character*50, public,  parameter :: LIS_PMWsnowobsId        = "PMW snow" !yliu
+   character*50, public,  parameter :: LIS_AMSRcnnSnowobsId    = "AMSR CNN snow"
    character*50, public,  parameter :: LIS_modisscfId          = "MODIS SCF"
    character*50, public,  parameter :: LIS_GRACEtwsobsId       = "GRACE TWS"
    character*50, public,  parameter :: LIS_simGRACEJPLobsId    = "Simulated GRACE (JPL)"
