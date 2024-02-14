@@ -30,8 +30,8 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
   implicit none
 
   integer,          intent(in) :: n
-  real                         :: surface_runoff(LIS_rc%lnc(n),LIS_rc%lnr(n))
-  real                         :: baseflow(LIS_rc%lnc(n),LIS_rc%lnr(n))
+  real                         :: surface_runoff(LIS_rc%lnc(n),LIS_rc%lnr(n),LIS_rc%nensem(n))
+  real                         :: baseflow(LIS_rc%lnc(n),LIS_rc%lnr(n),LIS_rc%nensem(n))
   real                         :: total_evapotranspiration(LIS_rc%lnc(n),LIS_rc%lnr(n))
 
   !caveats 
@@ -46,13 +46,13 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
   ! 5) LIS outputs are in NETCDF format. 
   !
   !Added total evapotranspiration (Evap)
-  integer                       :: c,r,t
+  integer                       :: c,r,t,m
   integer, allocatable      :: nqs(:,:)
 
   !ag - 17Mar2016
   !real,   allocatable       :: qs(:,:),qs_t(:)
-  real                  :: qs2d(LISrunoffdata_struc(n)%nc,LISrunoffdata_struc(n)%nr)
-  real                  :: qsb2d(LISrunoffdata_struc(n)%nc,LISrunoffdata_struc(n)%nr)
+  real                  :: qs2d(LISrunoffdata_struc(n)%nc,LISrunoffdata_struc(n)%nr,LIS_rc%nensem(n))
+  real                  :: qsb2d(LISrunoffdata_struc(n)%nc,LISrunoffdata_struc(n)%nr,LIS_rc%nensem(n))
   real,   allocatable   :: qs_t(:),qsb_t(:),evap_t(:)
   logical*1             :: lb(LISrunoffdata_struc(n)%nc*LISrunoffdata_struc(n)%nr)
   real                  :: var_input(LISrunoffdata_struc(n)%nc*LISrunoffdata_struc(n)%nr)
@@ -98,12 +98,12 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
 
       if(LISrunoffdata_struc(n)%domainCheck) then 
          if(LIS_rc%wopt.eq."2d gridspace") then 
-            ios = nf90_get_var(nid,qsid,LISrunoffdata_struc(n)%qs, &
+            ios = nf90_get_var(nid,qsid,LISrunoffdata_struc(n)%qs(:,:,1), &
                  start=(/LIS_ews_halo_ind(n,LIS_localPet+1),LIS_nss_halo_ind(n,LIS_localPet+1)/),&
                  count=(/LIS_rc%lnc(n),LIS_rc%lnr(n)/))
             call LIS_verify(ios, 'failed to read Qs_tavg field in readLISrunoffdata')
             
-            ios = nf90_get_var(nid,qsbid,LISrunoffdata_struc(n)%qsb,&
+            ios = nf90_get_var(nid,qsbid,LISrunoffdata_struc(n)%qsb(:,:,1),&
                  start=(/LIS_ews_halo_ind(n,LIS_localPet+1),LIS_nss_halo_ind(n,LIS_localPet+1)/),&
                  count=(/LIS_rc%lnc(n),LIS_rc%lnr(n)/))
             call LIS_verify(ios, 'failed to read Qsb_tavg field in readLISrunoffdata')
@@ -112,7 +112,19 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
                  start=(/LIS_ews_halo_ind(n,LIS_localPet+1),LIS_nss_halo_ind(n,LIS_localPet+1)/),&
                  count=(/LIS_rc%lnc(n),LIS_rc%lnr(n)/))
             call LIS_verify(ios, 'failed to read Evap_tavg field in readLISrunoffdata')
-         else
+         elseif(LIS_rc%wopt.eq."2d ensemble gridspace") then
+            ios = nf90_get_var(nid,qsid,LISrunoffdata_struc(n)%qs(:,:,:), &
+                 start=(/LIS_ews_halo_ind(n,LIS_localPet+1),LIS_nss_halo_ind(n,LIS_localPet+1),1/),&
+                 count=(/LIS_rc%lnc(n),LIS_rc%lnr(n),LIS_rc%nensem(n)/))
+            call LIS_verify(ios, 'failed to read Qs_tavg field in readLISrunoffdata')
+            
+            ios = nf90_get_var(nid,qsbid,LISrunoffdata_struc(n)%qsb(:,:,:),&
+                 start=(/LIS_ews_halo_ind(n,LIS_localPet+1),LIS_nss_halo_ind(n,LIS_localPet+1),1/),&
+                 count=(/LIS_rc%lnc(n),LIS_rc%lnr(n),LIS_rc%nensem(n)/))
+            call LIS_verify(ios, 'failed to read Qsb_tavg field in readLISrunoffdata')
+            
+            
+         else            
             write(LIS_logunit,*) "Stand-alone HYMAP is only supported for '2d gridspace' outputs currently"
             call LIS_endrun()
          endif
@@ -122,10 +134,10 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
       else
          if(LIS_rc%wopt.eq."2d gridspace") then
             
-            ios = nf90_get_var(nid,qsid,qs2d)
+            ios = nf90_get_var(nid,qsid,qs2d(:,:,1))
             call LIS_verify(ios, 'failed to read Qs_tavg field in readLISrunoffdata')
             
-            ios = nf90_get_var(nid,qsbid,qsb2d)
+            ios = nf90_get_var(nid,qsbid,qsb2d(:,:,1))
             call LIS_verify(ios, 'failed to read Qsb_tavg field in readLISrunoffdata')
 
 
@@ -134,8 +146,8 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
                lb = .true. 
                do r=1,LISrunoffdata_struc(n)%nr
                   do c=1,LISrunoffdata_struc(n)%nc
-                     var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qs2d(c,r)
-                     if(qs2d(c,r).lt.0) then
+                     var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qs2d(c,r,1)
+                     if(qs2d(c,r,1).lt.0) then
                         lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
                      endif
                   enddo
@@ -150,15 +162,15 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
                
                do r=1,LIS_rc%lnr(n)
                   do c=1,LIS_rc%lnc(n)
-                     LISrunoffdata_struc(n)%qs(c,r) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                     LISrunoffdata_struc(n)%qs(c,r,1) = var_out(c+(r-1)*LIS_rc%lnc(n))
                   enddo
                enddo
 
                lb = .true. 
                do r=1,LISrunoffdata_struc(n)%nr
                   do c=1,LISrunoffdata_struc(n)%nc
-                     var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qsb2d(c,r)
-                     if(qsb2d(c,r).lt.0) then
+                     var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qsb2d(c,r,1)
+                     if(qsb2d(c,r,1).lt.0) then
                         lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
                      endif
                   enddo
@@ -173,7 +185,7 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
                
                do r=1,LIS_rc%lnr(n)
                   do c=1,LIS_rc%lnc(n)
-                     LISrunoffdata_struc(n)%qsb(c,r) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                     LISrunoffdata_struc(n)%qsb(c,r,1) = var_out(c+(r-1)*LIS_rc%lnc(n))
                   enddo
                enddo
                
@@ -182,8 +194,8 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
                lb = .true. 
                do r=1,LISrunoffdata_struc(n)%nr
                   do c=1,LISrunoffdata_struc(n)%nc
-                     var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qs2d(c,r)
-                     if(qs2d(c,r).lt.0) then
+                     var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qs2d(c,r,1)
+                     if(qs2d(c,r,1).lt.0) then
                         lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
                      endif
                   enddo
@@ -198,15 +210,15 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
 
                 do r=1,LIS_rc%lnr(n)
                    do c=1,LIS_rc%lnc(n)
-                      LISrunoffdata_struc(n)%qs(c,r) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                      LISrunoffdata_struc(n)%qs(c,r,1) = var_out(c+(r-1)*LIS_rc%lnc(n))
                    enddo
                 enddo
 
                 lb = .true.
                 do r=1,LISrunoffdata_struc(n)%nr
                    do c=1,LISrunoffdata_struc(n)%nc
-                      var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qsb2d(c,r)
-                     if(qsb2d(c,r).lt.0) then
+                      var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qsb2d(c,r,1)
+                     if(qsb2d(c,r,1).lt.0) then
                         lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
                      endif
                   enddo
@@ -221,14 +233,123 @@ subroutine readLISrunoffdata(n,surface_runoff, baseflow)
 
                 do r=1,LIS_rc%lnr(n)
                    do c=1,LIS_rc%lnc(n)
-                      LISrunoffdata_struc(n)%qsb(c,r) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                      LISrunoffdata_struc(n)%qsb(c,r,1) = var_out(c+(r-1)*LIS_rc%lnc(n))
                    enddo
                 enddo
                
-             endif
+             endif             
             
-         else
-            write(LIS_logunit,*) "Stand-alone HYMAP is only supported for '2d gridspace' outputs currently"
+          elseif(LIS_rc%wopt.eq."2d ensemble gridspace") then
+            
+            ios = nf90_get_var(nid,qsid,qs2d)
+            call LIS_verify(ios, 'failed to read Qs_tavg field in readLISrunoffdata')
+            
+            ios = nf90_get_var(nid,qsbid,qsb2d)
+            call LIS_verify(ios, 'failed to read Qsb_tavg field in readLISrunoffdata')
+
+
+            do m=1,LIS_rc%nensem(n)
+               if(LIS_isAtAfinerResolution(n,LISrunoffdata_struc(n)%datares)) then
+                  
+                  lb = .true. 
+                  do r=1,LISrunoffdata_struc(n)%nr
+                     do c=1,LISrunoffdata_struc(n)%nc
+                        var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qs2d(c,r,m)
+                        if(qs2d(c,r,m).lt.0) then
+                           lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
+                        endif
+                     enddo
+                  enddo
+                  
+                  call neighbor_interp(LIS_rc%gridDesc,lb,var_input,  &
+                       lo,var_out,LISrunoffdata_struc(n)%nc*LISrunoffdata_struc(n)%nr,&
+                       LIS_rc%lnc(n)*LIS_rc%lnr(n),             &
+                       LIS_domain(n)%lat, LIS_domain(n)%lon,  &
+                       LISrunoffdata_struc(n)%n11,                         &
+                       LIS_rc%udef,ios)
+                  
+                  do r=1,LIS_rc%lnr(n)
+                     do c=1,LIS_rc%lnc(n)
+                        LISrunoffdata_struc(n)%qs(c,r,m) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                     enddo
+                  enddo
+                  
+                  lb = .true. 
+                  do r=1,LISrunoffdata_struc(n)%nr
+                     do c=1,LISrunoffdata_struc(n)%nc
+                        var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qsb2d(c,r,m)
+                        if(qsb2d(c,r,m).lt.0) then
+                           lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
+                        endif
+                     enddo
+                  enddo
+                     
+                  call neighbor_interp(LIS_rc%gridDesc,lb,var_input,  &
+                       lo,var_out,LISrunoffdata_struc(n)%nc*LISrunoffdata_struc(n)%nr,&
+                       LIS_rc%lnc(n)*LIS_rc%lnr(n),             &
+                       LIS_domain(n)%lat, LIS_domain(n)%lon,  &
+                       LISrunoffdata_struc(n)%n11,                         &
+                       LIS_rc%udef,ios)
+                  
+                  do r=1,LIS_rc%lnr(n)
+                     do c=1,LIS_rc%lnc(n)
+                        LISrunoffdata_struc(n)%qsb(c,r,m) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                     enddo
+                  enddo
+               
+               else
+
+                  lb = .true. 
+                  do r=1,LISrunoffdata_struc(n)%nr
+                     do c=1,LISrunoffdata_struc(n)%nc
+                        var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qs2d(c,r,m)
+                        if(qs2d(c,r,m).lt.0) then
+                           lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
+                        endif
+                     enddo
+                  enddo
+                  
+                  call upscaleByAveraging(&
+                       LISrunoffdata_struc(n)%nc*LISrunoffdata_struc(n)%nr, &
+                       LIS_rc%lnc(n)*LIS_rc%lnr(n), &
+                       LIS_rc%udef, &
+                       LISrunoffdata_struc(n)%n11, lb, &
+                       var_input, lo, var_out)
+                  
+                  do r=1,LIS_rc%lnr(n)
+                     do c=1,LIS_rc%lnc(n)
+                        LISrunoffdata_struc(n)%qs(c,r,m) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                     enddo
+                  enddo
+                  
+                  lb = .true.
+                  do r=1,LISrunoffdata_struc(n)%nr
+                     do c=1,LISrunoffdata_struc(n)%nc
+                        var_input(c+(r-1)*LISrunoffdata_struc(n)%nc) = qsb2d(c,r,m)
+                        if(qsb2d(c,r,m).lt.0) then
+                           lb(c+(r-1)*LISrunoffdata_struc(n)%nc) = .false.
+                        endif
+                     enddo
+                  enddo
+                  
+                  call upscaleByAveraging(&
+                       LISrunoffdata_struc(n)%nc*LISrunoffdata_struc(n)%nr, &
+                       LIS_rc%lnc(n)*LIS_rc%lnr(n), &
+                       LIS_rc%udef, &
+                       LISrunoffdata_struc(n)%n11, lb, &
+                       var_input, lo, var_out)
+                  
+                  do r=1,LIS_rc%lnr(n)
+                     do c=1,LIS_rc%lnc(n)
+                        LISrunoffdata_struc(n)%qsb(c,r,m) = var_out(c+(r-1)*LIS_rc%lnc(n))
+                     enddo
+                  enddo
+                  
+               endif
+            enddo
+
+          else
+            write(LIS_logunit,*) "Stand-alone HYMAP is not currently supported for ",LIS_rc%wopt
             call LIS_endrun()
          endif
       
@@ -243,14 +364,33 @@ endif
 #endif
 
   !ag - 17Mar2016
-  where(LISrunoffdata_struc(n)%qs/=LIS_rc%udef)
-    surface_runoff = LISrunoffdata_struc(n)%qs
-    baseflow = LISrunoffdata_struc(n)%qsb
-    total_evapotranspiration = LISrunoffdata_struc(n)%evap
-  else where
-    surface_runoff = 0.0
-    baseflow = 0.0
-    total_evapotranspiration = 0.0
-  end where
+!  where(LISrunoffdata_struc(n)%qs/=LIS_rc%udef)
+!    surface_runoff(:,:,1) = LISrunoffdata_struc(n)%qs
+!    baseflow(:,:,1) = LISrunoffdata_struc(n)%qsb
+!    total_evapotranspiration = LISrunoffdata_struc(n)%evap
+!  else where
+!    surface_runoff(:,:,1) = 0.0
+!    baseflow(:,:,1) = 0.0
+!    total_evapotranspiration = 0.0
+!  end where
+
+do r=1, LIS_rc%lnr(n)
+   do c=1,LIS_rc%lnc(n)
+      do m=1,LIS_rc%nensem(n)
+         if(LISrunoffdata_struc(n)%qs(c,r,m).ne.LIS_rc%udef) then
+
+            surface_runoff(c,r,m) = LISrunoffdata_struc(n)%qs(c,r,m)
+            baseflow(c,r,m) = LISrunoffdata_struc(n)%qsb(c,r,m)
+            
+         else
+            surface_runoff(c,r,m) = 0.0
+            baseflow(c,r,m) = 0.0
+            
+         endif
+      enddo
+   enddo
+enddo
+
+
 
 end subroutine readLISrunoffdata
