@@ -4634,6 +4634,8 @@ subroutine get_moc_attributes(modelSpecConfig, head_dataEntry, &
     type(LVT_metadataEntry),    pointer :: refet, relsmc
     type(LVT_LISmetadataEntry), pointer :: psurf, tair,qair,wind
     type(LVT_metadataEntry),    pointer :: swe_calc
+    type(LVT_LISmetadataEntry), pointer :: tairmin,tairmax
+    type(LVT_metadataEntry),    pointer :: potevap_LVT,vpd_LVT
     type(LVT_LISmetadataEntry), pointer :: elev, swgdn
 
     real                       :: total_depth, value_temp, layer_frac
@@ -4646,6 +4648,11 @@ subroutine get_moc_attributes(modelSpecConfig, head_dataEntry, &
     real                       :: ws, dr, Gsc, ra, rso, RsRso
     real                       :: fcd, sigma, Rnl, Rn
     real                       :: lhs, rhs, denom
+
+    real                       :: tairc, tairminc,tairmaxc,u2,deltaTerm,gammaTerm,height
+    real                       :: dt, pt, tt, e_t, e_tmin,e_tmax,e_s, e_a
+    real                       :: rh_min,rh_max,vpdterm,pet_rad, pet_wind
+    
 
     integer                    :: nl_vic(LVT_rc%npts)
     real                       :: total_depth_vic(LVT_rc%npts)
@@ -5595,8 +5602,210 @@ subroutine get_moc_attributes(modelSpecConfig, head_dataEntry, &
              enddo
           endif
        endif
+       if(LVT_MOC_POTEVAP(source).gt.0) then
+          if(source.eq.1) then 
+             potevap_LVT => LVT_histData%ptr_into_ds1_list(&
+                  LVT_MOC_POTEVAP(source))%dataEntryPtr
+          elseif(source.eq.2) then 
+             potevap_LVT => LVT_histData%ptr_into_ds2_list(&
+                  LVT_MOC_POTEVAP(source))%dataEntryPtr
+          elseif(source.eq.3) then 
+             potevap_LVT => LVT_histData%ptr_into_ds3_list(&
+                  LVT_MOC_POTEVAP(source))%dataEntryPtr
+          endif
+          
+          if(potevap_LVT%selectNlevs.ge.1) then
+             if(LVT_LIS_MOC_TAIRFORC(source).gt.0.and.&
+                  LVT_LIS_MOC_TAIRFORC_MIN(source).gt.0.and.&
+                  LVT_LIS_MOC_TAIRFORC_MAX(source).gt.0.and.&
+                  LVT_LIS_MOC_QAIRFORC(source).gt.0.and.&
+                  LVT_LIS_MOC_PSURFFORC(source).gt.0.and.&
+                  LVT_LIS_MOC_WINDFORC(source).gt.0.and.&
+                  LVT_LIS_MOC_SWNET(source).gt.0.and.&
+                  LVT_LIS_MOC_LWNET(source).gt.0) then
 
-       if(LVT_MOC_REFET(source).gt.0) then 
+                   tair => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_TAIRFORC(source))%dataEntryPtr
+
+                   tairmin => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_TAIRFORC_MIN(source))%dataEntryPtr
+
+                   tairmax => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_TAIRFORC_MAX(source))%dataEntryPtr
+
+                   wind => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_WINDFORC(source))%dataEntryPtr
+                   
+                   psurf => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_PSURFFORC(source))%dataEntryPtr
+
+                   qair => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_QAIRFORC(source))%dataEntryPtr
+
+                   swnet => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_SWNET(source))%dataEntryPtr
+
+                   lwnet  => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_LWNET(source))%dataEntryPtr
+                
+                   
+                   do gid=1,LVT_rc%npts                   
+                      do m=1,LVT_rc%nensem
+                         tairc = tair%value(gid,m,1)-273.15
+                         tairminc = tairmin%value(gid,m,1)-273.15
+                         tairmaxc = tairmax%value(gid,m,1)-273.15
+                         
+                         height = 10.0
+
+                         u2 = (wind%value(gid,m,1)*4.87)/(log(67.8*height-5.42))
+
+                         !slope of saturation water pressure
+                         deltaTerm = 4098*0.6108*exp((17.27*tairc)/(tairc+237.3))/&
+                              (tairc+273.3)**2
+                         !psychrometric constant !kPa per Celcius
+                         gammaTerm = 0.000665*psurf%value(gid,m,1)/1000.0                       
+                         dt = deltaTerm/(deltaTerm + gammaTerm*(1+0.34*u2))
+
+                         pt = gammaTerm/(deltaTerm + gammaTerm*(1+0.34*u2))
+
+                         tt = (900/(tairc+273.15))*u2
+                         !mean saturation vapor pressure from air temperature
+                         e_t = 0.6108*exp(17.27*tairc/(tairc+237.3))
+                         e_tmax = 0.6108*exp(17.27*tairmaxc/(tairmaxc+237.3))
+                         e_tmin = 0.6108*exp(17.27*tairminc/(tairminc+237.3))
+
+                         e_s = (e_tmax+e_tmin)/2.0
+
+                         !relative humidity
+                         rh_max = 0.263*psurf%value(gid,m,1)*qair%value(gid,m,1)/&
+                              exp((17.67*(tairmax%value(gid,m,1)-273.15))/&
+                              (tairmax%value(gid,m,1)-29.65))
+                         rh_min = 0.263*psurf%value(gid,m,1)*qair%value(gid,m,1)/&
+                              exp((17.67*(tairmin%value(gid,m,1)-273.15))/&
+                              (tairmin%value(gid,m,1)-29.65))
+
+                         e_a = (e_tmin*rh_max+e_tmax*rh_min)/(200.0)
+                         e_a = e_tmin
+                         
+                         vpdTerm = e_s - e_a
+                         
+                         PET_rad = dt*(swnet%value(gid,m,1)+lwnet%value(gid,m,1))
+                         
+                         PET_wind = PT*TT*vpdTerm
+
+                         potevap_LVT%value(gid,m,1) = PET_rad + PET_wind*28.356 !to W/m2
+
+                         if(potevap_LVT%value(gid,m,1).lt.0) then
+                            potevap_LVT%value(gid,m,1) = LVT_rc%udef
+                         else                            
+                            potevap_LVT%count(gid,m,1)=tair%count(gid,m,1)
+                         endif
+                      enddo
+                   enddo
+                else
+                   write(LVT_logunit,*)&
+                        '[WARN] Please enable Tair_f, Tair_f_min, Tair_f_max, Qair_f, Psurf_f, SWnet, LWnet in the LIS output to calculate PET'
+                   call LVT_endrun()
+                endif
+             endif
+          endif
+
+          if(LVT_MOC_VPD(source).gt.0) then
+             if(source.eq.1) then 
+                vpd_LVT => LVT_histData%ptr_into_ds1_list(&
+                     LVT_MOC_VPD(source))%dataEntryPtr
+             elseif(source.eq.2) then 
+                vpd_LVT => LVT_histData%ptr_into_ds2_list(&
+                     LVT_MOC_VPD(source))%dataEntryPtr
+             elseif(source.eq.3) then 
+                vpd_LVT => LVT_histData%ptr_into_ds3_list(&
+                     LVT_MOC_VPD(source))%dataEntryPtr
+             endif
+          
+             if(vpd_LVT%selectNlevs.ge.1) then
+                if(LVT_LIS_MOC_TAIRFORC(source).gt.0.and.&
+                     LVT_LIS_MOC_TAIRFORC_MIN(source).gt.0.and.&
+                     LVT_LIS_MOC_TAIRFORC_MAX(source).gt.0.and.&
+                     LVT_LIS_MOC_QAIRFORC(source).gt.0.and.&
+                     LVT_LIS_MOC_PSURFFORC(source).gt.0.and.&
+                     LVT_LIS_MOC_WINDFORC(source).gt.0) then 
+                   
+                   tair => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_TAIRFORC(source))%dataEntryPtr
+                   
+                   tairmin => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_TAIRFORC_MIN(source))%dataEntryPtr
+
+                   tairmax => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_TAIRFORC_MAX(source))%dataEntryPtr
+
+                   wind => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_WINDFORC(source))%dataEntryPtr
+                   
+                   psurf => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_PSURFFORC(source))%dataEntryPtr
+
+                   qair => LVT_LISoutput(source)%ptr_into_lsm_list(&
+                        LVT_LIS_MOC_QAIRFORC(source))%dataEntryPtr
+
+                                   
+                   do gid=1,LVT_rc%npts                   
+                      do m=1,LVT_rc%nensem
+                         tairc = tair%value(gid,m,1)-273.15
+                         tairminc = tairmin%value(gid,m,1)-273.15
+                         tairmaxc = tairmax%value(gid,m,1)-273.15
+                         
+                         height = 10.0
+
+                         u2 = (wind%value(gid,m,1)*4.87)/(log(67.8*height-5.42))
+
+                         !slope of saturation water pressure
+                         deltaTerm = 4098*0.6108*exp((17.27*tairc)/(tairc+237.3))/&
+                              (tairc+273.3)**2
+                         !psychrometric constant !kPa per Celcius
+                         gammaTerm = 0.000665*psurf%value(gid,m,1)/1000.0                       
+                         dt = deltaTerm/(deltaTerm + gammaTerm*(1+0.34*u2))
+
+                         pt = gammaTerm/(deltaTerm + gammaTerm*(1+0.34*u2))
+
+                         tt = (900/(tairc+273.15))*u2
+                         !mean saturation vapor pressure from air temperature
+                         e_t = 0.6108*exp(17.27*tairc/(tairc+237.3))
+                         e_tmax = 0.6108*exp(17.27*tairmaxc/(tairmaxc+237.3))
+                         e_tmin = 0.6108*exp(17.27*tairminc/(tairminc+237.3))
+
+                         e_s = (e_tmax+e_tmin)/2.0
+
+                         !relative humidity
+                         rh_max = 0.263*psurf%value(gid,m,1)*qair%value(gid,m,1)/&
+                              exp((17.67*(tairmax%value(gid,m,1)-273.15))/&
+                              (tairmax%value(gid,m,1)-29.65))
+                         rh_min = 0.263*psurf%value(gid,m,1)*qair%value(gid,m,1)/&
+                              exp((17.67*(tairmin%value(gid,m,1)-273.15))/&
+                              (tairmin%value(gid,m,1)-29.65))
+
+                         e_a = (e_tmin*rh_max+e_tmax*rh_min)/(200.0)
+                         e_a = e_tmin
+                         
+                         vpdTerm = (e_s - e_a)/1000.0 !to Pa
+                         print*, vpdterm
+                                                 
+                         if(vpdTerm.lt.0) then 
+                            vpd_LVT%value(gid,m,1) = LVT_rc%udef
+                         else
+                            vpd_LVT%value(gid,m,1) = vpdTerm
+                            vpd_LVT%count(gid,m,1)=tair%count(gid,m,1)
+                         endif
+                      enddo
+                   enddo
+                else
+                   write(LVT_logunit,*)&
+                        '[WARN] Please enable Tair_f, Tair_f_min, Tair_f_max, Qair_f, Psurf_f, SWnet, LWnet in the LIS output to calculate PET'
+                   call LVT_endrun()
+                endif
+             endif
+          endif
+          if(LVT_MOC_REFET(source).gt.0) then 
           if(source.eq.1) then 
              refet => LVT_histData%ptr_into_ds1_list(&
                   LVT_MOC_REFET(source))%dataEntryPtr
@@ -5630,8 +5839,10 @@ subroutine get_moc_attributes(modelSpecConfig, head_dataEntry, &
                         LVT_LIS_MOC_SWDOWNFORC(source))%dataEntryPtr
                    elev  => LVT_LISoutput(source)%ptr_into_lsm_list(&
                         LVT_LIS_MOC_ELEVATION(source))%dataEntryPtr
+
                    do gid=1,LVT_rc%npts                   
                       do m=1,LVT_rc%nensem
+
                          Cn = 888 !Short-crop parameter values
                          Cd = 0.34
                          lon_rad = LVT_domain%grid(gid)%lon *3.1416/180
@@ -8321,10 +8532,12 @@ subroutine get_moc_attributes(modelSpecConfig, head_dataEntry, &
        if(trim(LVT_LIS_rc(source)%wopt).eq."1d tilespace") then 
           if(dataEntry%vlevels.eq.1) then           
              ! EMK...Special handling of Tair_f_max, Tair_f_min, and RHMin_inst
-             if (trim(dataEntry%short_name) == "Tair_f_max") then
+             if (trim(dataEntry%short_name) == "Tair_f_max".and.&
+                  dataEntry%timeAvgOpt.eq.0) then
                 short_name = trim(dataEntry%short_name)
                 find_max = .true.
-             else if (trim(dataEntry%short_name) == "Tair_f_min") then
+             else if (trim(dataEntry%short_name) == "Tair_f_min".and.&
+                  dataEntry%timeAvgOpt.eq.0) then
                 short_name = trim(dataEntry%short_name)
                 find_min = .true.
              else if (trim(dataEntry%short_name) == "RHMin") then
@@ -8670,12 +8883,22 @@ subroutine get_moc_attributes(modelSpecConfig, head_dataEntry, &
        elseif(trim(LVT_LIS_rc(source)%wopt).eq."2d gridspace") then 
           if(dataEntry%vlevels.eq.1) then 
              ! EMK...Special handling of Tair_f_max, Tair_f_min, RHMin_inst
-             if (trim(dataEntry%short_name) == "Tair_f_max") then
+             if (trim(dataEntry%short_name) == "Tair_f_max".and.&
+                  dataEntry%timeAvgOpt.eq.0) then
                 short_name = trim(dataEntry%short_name)
                 find_max = .true.
-             else if (trim(dataEntry%short_name) == "Tair_f_min") then
+             elseif(trim(dataEntry%short_name) =="Tair_f_max".and.&
+                  dataEntry%timeAvgOpt.eq.1) then
+                short_name = "Tair_f_tavg_max"
+                find_max = .true.                
+             else if (trim(dataEntry%short_name) == "Tair_f_min".and.&
+                  dataEntry%timeAvgOpt.eq.0) then
                 short_name = trim(dataEntry%short_name)
                 find_min = .true.
+             elseif(trim(dataEntry%short_name) =="Tair_f_min".and.&
+                  dataEntry%timeAvgOpt.eq.1) then
+                short_name = "Tair_f_tavg_min"
+                find_max = .true.                                
              else if (trim(dataEntry%short_name) == "RHMin") then
                 short_name = trim(dataEntry%short_name)//'_inst'
                 find_rhmin = .true.                
