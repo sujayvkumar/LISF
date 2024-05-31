@@ -5788,7 +5788,6 @@ subroutine get_moc_attributes(modelSpecConfig, head_dataEntry, &
                          e_a = e_tmin
                          
                          vpdTerm = (e_s - e_a)/1000.0 !to Pa
-                         print*, vpdterm
                                                  
                          if(vpdTerm.lt.0) then 
                             vpd_LVT%value(gid,m,1) = LVT_rc%udef
